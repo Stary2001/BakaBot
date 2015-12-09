@@ -15,12 +15,12 @@ BakaBot: dirs $(OBJ)
 all: BakaBot
 
 dirs:
-	if [ ! -d obj ]; then\
-		mkdir obj; \
+	if [ ! -d obj/event ]; then\
+		mkdir -p obj/event; \
 	fi
 
 clean:
-	rm -f obj/*.o \
+	rm -f obj/*.o obj/*/*.o \
 	rm -f src/plugins/*.so
 
 -include Makefile.deps

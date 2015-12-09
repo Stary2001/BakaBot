@@ -3,7 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include "util.h"
-#include "event.h"
+#include "events.h"
 #include <algorithm> // for tolower
 
 bool cb_null(Event *e)

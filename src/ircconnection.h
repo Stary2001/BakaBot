@@ -2,6 +2,7 @@
 #include "connection.h"
 #include <vector>
 #include <map>
+#include <functional>
 
 class EventSink;
 class Event;
