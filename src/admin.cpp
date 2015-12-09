@@ -1,6 +1,6 @@
 #include "plugin.h"
 #include "bot.h"
-#include "event.h"
+#include "events.h"
 #include <functional>
 #include "admin.h"
 #include <iostream>
