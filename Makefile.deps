@@ -1,1 +1,16 @@
+event.o: src/event/event.cpp src/event/event.h src/ircconnection.h \
+ /home/stary/develop/C++/libs/include/sock/connection.h
+admin.o: src/admin.cpp \
+ /home/stary/develop/C++/libs/include/plugin/plugin.h src/bot.h \
+ src/ircconnection.h \
+ /home/stary/develop/C++/libs/include/sock/connection.h src/event/event.h
+bot.o: src/bot.cpp src/bot.h src/ircconnection.h \
+ /home/stary/develop/C++/libs/include/sock/connection.h \
+ /home/stary/develop/C++/libs/include/plugin/plugin.h src/event/event.h
+ircconnection.o: src/ircconnection.cpp src/ircconnection.h \
+ /home/stary/develop/C++/libs/include/sock/connection.h src/util.h \
+ src/event/event.h
+main.o: src/main.cpp src/bot.h src/ircconnection.h \
+ /home/stary/develop/C++/libs/include/sock/connection.h \
+ /home/stary/develop/C++/libs/include/plugin/plugin.h src/event/event.h
 util.o: src/util.cpp src/util.h

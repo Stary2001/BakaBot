@@ -1,7 +1,7 @@
-CXXFLAGS=-fPIC -std=c++11 -I$(COREPATH)/include/plugin -I$(COREPATH)/include/sock -I../ -shared
-PLUGINS=$(patsubst ./%,%.so,$(shell find . -maxdepth 1 -mindepth 1 -type d))
+CXXFLAGS=-fPIC -std=c++11 -I$(COREPATH)/include/plugin -I$(COREPATH)/include/sock -I../ -I../event -shared
+PLUGINS=$(patsubst %.cpp,%.so,$(wildcard ./*.cpp))
 
 all: $(PLUGINS)
 
-%.so : %.plugin
-	g++ $(CXXFLAGS) `cat $<`/*.cpp -o $@
+%.so : %.cpp
+	g++ $(CXXFLAGS) $< -o $@

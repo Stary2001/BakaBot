@@ -1,6 +1,7 @@
 #pragma once
-#include "ircconnection.h"
 #include "plugin.h"
+#include "events.h"
+#include <thread>
 
 struct BotConfig
 {
@@ -17,13 +18,13 @@ struct BotConfig
 	std::string nickserv_password;
 };
 
-class Bot : public PluginHost
+class Bot : public PluginHost, public EventSink
 {
 public:
 	Bot();
 	Bot(BotConfig c);
 	void connect(ConnectionDispatcher *d);
-	void add_callback(std::string s, IRCCallback c);
+
 	IRCConnection *conn;
 private:
 	BotConfig config;
@@ -32,7 +33,10 @@ private:
 
 	void init_plugins();
 
-	bool print(User &sender, std::vector<std::string> &params);
-	bool end_of_motd(User &sender, std::vector<std::string> &params);
-	bool cb_invite(User &sender, std::vector<std::string> &params);
+	bool print(Event *e);
+	bool end_of_motd(Event *e);
+	bool cb_invite(Event *e);
+
+	void event_thread_func();
+	std::thread event_thread;
 };

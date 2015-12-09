@@ -1,10 +1,18 @@
 #include "bot.h"
 #include <iostream>
 
-Bot::Bot() : conn(NULL)
+void Bot::event_thread_func()
+{
+	while(true)
+	{
+		handle_event();
+	}
+}
+
+Bot::Bot() : conn(NULL), event_thread(std::bind(&Bot::event_thread_func, this))
 {}
 
-Bot::Bot(BotConfig b) : conn(NULL), config(b)
+Bot::Bot(BotConfig b) : conn(NULL), config(b), event_thread(std::bind(&Bot::event_thread_func, this))
 {}
 
 void Bot::init_plugins()
@@ -17,14 +25,18 @@ void Bot::init_plugins()
 	}
 }
 
-bool Bot::print(User &sender, std::vector<std::string> &params)
+bool Bot::print(Event *e)
 {
-	std::cout << "<" << sender.nick << "> " << params[1] << std::endl;
+	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
+
+	std::cout << "<" << ev->sender.nick << "> " << ev->message << std::endl;
 	return false;
 }
 
-bool Bot::end_of_motd(User &sender, std::vector<std::string> &params)
+bool Bot::end_of_motd(Event *e)
 {
+	IRCConnectedEvent *ev = reinterpret_cast<IRCConnectedEvent*>(e);
+
 	if(config.nickserv_username != "" && config.nickserv_password != "")
 	{
 		conn->send_privmsg("NickServ", "identify " + config.nickserv_username + " " + config.nickserv_password);
@@ -32,11 +44,12 @@ bool Bot::end_of_motd(User &sender, std::vector<std::string> &params)
 	return false;
 }
 
-bool Bot::cb_invite(User &sender, std::vector<std::string> &params)
+bool Bot::cb_invite(Event *e)
 {
-	if(params[0] == current_nick)
+	IRCInviteEvent *ev = reinterpret_cast<IRCInviteEvent*>(e);
+	if(ev->target == current_nick)
 	{
-		conn->join(params[1]);
+		conn->join(ev->channel);
 	}
 	return false;
 }
@@ -44,15 +57,15 @@ bool Bot::cb_invite(User &sender, std::vector<std::string> &params)
 void Bot::connect(ConnectionDispatcher *d)
 {
 	using namespace std::placeholders;
-	conn = new IRCConnection(config.server, config.server_port);
+	conn = new IRCConnection(this, config.server, config.server_port);
 
 	load_plugin("./sed.so");
 
 	init_plugins();
 
-	//conn->add_callback("notice", std::bind(&Bot::print, this, _1, _2));
-	conn->add_callback("invite", std::bind(&Bot::cb_invite, this, _1, _2));
-	conn->add_callback("376", std::bind(&Bot::end_of_motd, this, _1, _2));
+	add_handler("irc/message", std::bind(&Bot::print, this, _1));
+	add_handler("irc/invite", std::bind(&Bot::cb_invite, this, _1));
+	add_handler("irc/connected", std::bind(&Bot::end_of_motd, this, _1));
 
 	d->add(conn);
 	state = IRCState::CONNECTED;
@@ -68,10 +81,4 @@ void Bot::connect(ConnectionDispatcher *d)
 		conn->send_line("USER " + config.username + " * * :" + config.realname);
 		state = IRCState::USER;
 	}
-}
-
-void Bot::add_callback(std::string s, IRCCallback c)
-{
-	if(conn != NULL)
-		conn->add_callback(s, c);
 }

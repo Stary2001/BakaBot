@@ -1,6 +1,7 @@
 #include <iostream>
 #include <regex>
 #include "plugin.h"
+#include "event.h"
 #include "bot.h"
 
 #define SCROLLBACK_SIZE 100
@@ -12,7 +13,7 @@ public:
     virtual void deinit(PluginHost *h);
 
 private:
-    bool msg(Bot *b, User &sender, std::vector<std::string> &params);
+    bool msg(Bot *b, Event *e);
     std::map<Bot *, std::map<std::string, std::vector<std::string>>> scrollback;
 };
 
@@ -27,7 +28,7 @@ void SedPlugin::init(PluginHost *h)
 	Bot *b = (Bot*)h;
 
 	using namespace std::placeholders;
-	b->add_callback("privmsg", std::bind(&SedPlugin::msg, this, b, _1, _2));
+	b->add_handler("irc/message", std::bind(&SedPlugin::msg, this, b, _1));
 
 	//scrollback = std::map<Bot *, std::map<std::string, std::vector<std::string>>>();
 	scrollback[b] = std::map<std::string, std::vector<std::string>>();
@@ -38,25 +39,25 @@ void SedPlugin::deinit(PluginHost *h)
 	std::cout << "deinit" << std::endl;
 }
 
-bool SedPlugin::msg(Bot *b, User &sender, std::vector<std::string> &params)
+bool SedPlugin::msg(Bot *b, Event *e)
 {
-	std::cout << params[0] << std::endl;
-	std::cout << params[0][0] << std::endl;
+	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
 
-	if(params[0][0] == '#') // to a channel?
+
+	if(ev->target[0] == '#') // to a channel?
 	{
-		if(scrollback[b].find(params[0]) == scrollback[b].end())
+		if(scrollback[b].find(ev->target) == scrollback[b].end())
 		{
-			scrollback[b][params[0]] = std::vector<std::string>();
+			scrollback[b][ev->target] = std::vector<std::string>();
 		}
 
-		std::vector<std::string> &scroll = scrollback[b][params[0]];
+		std::vector<std::string> &scroll = scrollback[b][ev->target];
 		
-		if(params[1].substr(0, 2) == "s/")
+		if(ev->message.substr(0, 2) == "s/")
 		{
-			std::cout << params[1] << " " << scroll.size() << std::endl;
+			std::cout << ev->message << " " << scroll.size() << std::endl;
 			int beg = 2; 
-			int middle = params[1].find('/', beg + 1);
+			int middle = ev->message.find('/', beg + 1);
 
 			while(true)
 			{
@@ -64,9 +65,9 @@ bool SedPlugin::msg(Bot *b, User &sender, std::vector<std::string> &params)
 				{
 					return false;
 				}
-				else if(params[1][middle - 1] == '\\')
+				else if(ev->message[middle - 1] == '\\')
 				{
-					middle = params[1].find('/', middle + 1);
+					middle = ev->message.find('/', middle + 1);
 				}
 				else
 				{
@@ -74,12 +75,12 @@ bool SedPlugin::msg(Bot *b, User &sender, std::vector<std::string> &params)
 				}
 			}
 
-			int end = params[1].find('/', middle + 1);
+			int end = ev->message.find('/', middle + 1);
 			while(true)
 			{	
-				if(end != std::string::npos && params[1][middle - 1] == '\\') 
+				if(end != std::string::npos && ev->message[middle - 1] == '\\') 
 				{
-					end = params[1].find('/', end + 1);
+					end = ev->message.find('/', end + 1);
 				}
 				else
 				{
@@ -89,15 +90,15 @@ bool SedPlugin::msg(Bot *b, User &sender, std::vector<std::string> &params)
 
 			if(end == std::string::npos)
 			{
-				end = params[1].length();
+				end = ev->message.length();
 			}
 
-			std::string regex = params[1].substr(beg, middle - beg);
-			std::string replacement = params[1].substr(middle + 1, end - middle - 1);
+			std::string regex = ev->message.substr(beg, middle - beg);
+			std::string replacement = ev->message.substr(middle + 1, end - middle - 1);
 			std::string flags;
-			if(end != params[1].length())
+			if(end != ev->message.length())
 			{
-				flags = params[1].substr(end + 1);
+				flags = ev->message.substr(end + 1);
 			}
 			
 			//std::cout << regex << " / " << replacement << " / " << flags << std::endl;
@@ -125,7 +126,7 @@ bool SedPlugin::msg(Bot *b, User &sender, std::vector<std::string> &params)
 					if(std::regex_search(*it, r, match_flags))
 					{
 						std::string resp = std::regex_replace(*it, r, replacement, match_flags);
-						b->conn->send_privmsg(params[0], resp);
+						b->conn->send_privmsg(ev->target, resp);
 						scroll.push_back(resp);
 						break;
 					}
@@ -133,12 +134,12 @@ bool SedPlugin::msg(Bot *b, User &sender, std::vector<std::string> &params)
 			}
 			catch(std::regex_error &e)
 			{
-				b->conn->send_privmsg(params[0], "you broke it! gg!");
+				b->conn->send_privmsg(ev->target, "you broke it! gg!");
 			}
 		}
 		else
 		{
-			scroll.push_back(params[1]);
+			scroll.push_back(ev->message);
 			if(scroll.size() >= SCROLLBACK_SIZE)
 			{
 				scroll.erase(scroll.begin());
@@ -147,6 +148,5 @@ bool SedPlugin::msg(Bot *b, User &sender, std::vector<std::string> &params)
 
 		
 	}
-	// BakaBot :msg
 	return false;
 }
