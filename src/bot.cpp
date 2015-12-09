@@ -1,4 +1,6 @@
 #include "bot.h"
+#include "util.h"
+#include "admin.h"
 #include <iostream>
 
 void Bot::event_thread_func()
@@ -19,9 +21,9 @@ void Bot::init_plugins()
 {
 	// Plugin::register_plugin(new SedPlugin()); // todo: dynamic plugins
 
-	for(Plugin *p : active_plugins)
+	for(std::pair<std::string, Plugin *> kv : active_plugins)
 	{
-		p->init(this);
+		kv.second->init(this);
 	}
 }
 
@@ -30,6 +32,24 @@ bool Bot::print(Event *e)
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
 
 	std::cout << "<" << ev->sender.nick << "> " << ev->message << std::endl;
+	return false;
+}
+
+bool Bot::cb_command(Event *e)
+{
+	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
+	if(ev->message.substr(0, config.command_prefix.length()) == config.command_prefix)
+	{
+		ev->message = ev->message.substr(config.command_prefix.length());
+		std::cout << "got command " << ev->message << std::endl;
+		auto bits = util::split(ev->message, ' ');
+		std::string name = *(bits.begin());
+		bits.erase(bits.begin());
+
+		queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
+		return true;
+	}
+
 	return false;
 }
 
@@ -59,13 +79,13 @@ void Bot::connect(ConnectionDispatcher *d)
 	using namespace std::placeholders;
 	conn = new IRCConnection(this, config.server, config.server_port);
 
-	load_plugin("./sed.so");
+	active_plugins["admin"] = new AdminPlugin();
 
 	init_plugins();
 
-	add_handler("irc/message", std::bind(&Bot::print, this, _1));
-	add_handler("irc/invite", std::bind(&Bot::cb_invite, this, _1));
-	add_handler("irc/connected", std::bind(&Bot::end_of_motd, this, _1));
+	add_handler("irc/message", "bot", std::bind(&Bot::cb_command, this, _1));
+	add_handler("irc/invite", "bot", std::bind(&Bot::cb_invite, this, _1));
+	add_handler("irc/connected", "bot", std::bind(&Bot::end_of_motd, this, _1));
 
 	d->add(conn);
 	state = IRCState::CONNECTED;

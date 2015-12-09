@@ -6,20 +6,33 @@
 
 #define SCROLLBACK_SIZE 100
 
+struct SedMessage
+{
+	User sender;
+	std::string message;
+};
+
 class SedPlugin : public Plugin
 {
 public:
     virtual void init(PluginHost *h);
     virtual void deinit(PluginHost *h);
+    virtual std::string name();
 
 private:
-    bool msg(Bot *b, Event *e);
-    std::map<Bot *, std::map<std::string, std::vector<std::string>>> scrollback;
+    bool msg(Event *e);
+    std::map<std::string, std::vector<SedMessage>> scrollback;
+    Bot *bot;
 };
 
 extern "C" Plugin* plugin_init(PluginHost *h)
 {
 	return new SedPlugin();
+}
+
+std::string SedPlugin::name()
+{
+	return "sed";
 }
 
 void SedPlugin::init(PluginHost *h)
@@ -28,30 +41,31 @@ void SedPlugin::init(PluginHost *h)
 	Bot *b = (Bot*)h;
 
 	using namespace std::placeholders;
-	b->add_handler("irc/message", std::bind(&SedPlugin::msg, this, b, _1));
+	b->add_handler("irc/message", "sed", std::bind(&SedPlugin::msg, this, _1));
 
 	//scrollback = std::map<Bot *, std::map<std::string, std::vector<std::string>>>();
-	scrollback[b] = std::map<std::string, std::vector<std::string>>();
+	scrollback = std::map<std::string, std::vector<SedMessage>>();
+	bot = b;
 }
 
 void SedPlugin::deinit(PluginHost *h)
 {
 	std::cout << "deinit" << std::endl;
+	bot->remove_handler("irc/message", "sed");
 }
 
-bool SedPlugin::msg(Bot *b, Event *e)
+bool SedPlugin::msg(Event *e)
 {
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
 
-
 	if(ev->target[0] == '#') // to a channel?
 	{
-		if(scrollback[b].find(ev->target) == scrollback[b].end())
+		if(scrollback.find(ev->target) == scrollback.end())
 		{
-			scrollback[b][ev->target] = std::vector<std::string>();
+			scrollback[ev->target] = std::vector<SedMessage>();
 		}
 
-		std::vector<std::string> &scroll = scrollback[b][ev->target];
+		std::vector<SedMessage> &scroll = scrollback[ev->target];
 		
 		if(ev->message.substr(0, 2) == "s/")
 		{
@@ -123,23 +137,30 @@ bool SedPlugin::msg(Bot *b, Event *e)
 				auto it = scroll.rbegin();
 				for(; it != scroll.rend(); it++)
 				{
-					if(std::regex_search(*it, r, match_flags))
+					if(std::regex_search(it->message, r, match_flags))
 					{
-						std::string resp = std::regex_replace(*it, r, replacement, match_flags);
-						b->conn->send_privmsg(ev->target, resp);
-						scroll.push_back(resp);
+						std::string resp = std::regex_replace(it->message, r, replacement, match_flags);
+						bot->conn->send_privmsg(ev->target, "<" + it->sender.nick + "> " + resp);
+						
+						SedMessage m;
+						m.sender = it->sender;
+						m.message = resp;
+						scroll.push_back(m);
 						break;
 					}
 				}
 			}
 			catch(std::regex_error &e)
 			{
-				b->conn->send_privmsg(ev->target, "you broke it! gg!");
+				bot->conn->send_privmsg(ev->target, "you broke it! gg!");
 			}
 		}
 		else
 		{
-			scroll.push_back(ev->message);
+			SedMessage m;
+			m.sender = ev->sender;
+			m.message = ev->message;
+			scroll.push_back(m);
 			if(scroll.size() >= SCROLLBACK_SIZE)
 			{
 				scroll.erase(scroll.begin());

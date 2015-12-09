@@ -123,18 +123,21 @@ bool IRCConnection::cb_end_of_motd(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 	sink->queue_event(new IRCConnectedEvent(ev->sender));
+	return true;
 }
 
 bool IRCConnection::cb_rewrite_invite(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 	sink->queue_event(new IRCInviteEvent(ev->sender, ev->params[0], ev->params[1]));
+	return true;
 }
 
 bool IRCConnection::cb_rewrite_privmsg(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 	sink->queue_event(new IRCMessageEvent(ev->sender, ev->params[0], ev->params[1]));
+	return true;
 }
 
 bool IRCConnection::cb_ping(Event *e)
@@ -180,57 +183,57 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 	scratch = (char*) malloc(SCRATCH_LENGTH);
 	scratch_off = 0;
 
-/*	sink->add_handler("raw/001", std::bind(&IRCConnection::cb_print, this, _1, _2));
-	sink->add_handler("raw/002", std::bind(&IRCConnection::cb_print, this, _1, _2));
-	sink->add_handler("raw/003", std::bind(&IRCConnection::cb_print, this, _1, _2));*/
-	sink->add_handler("raw/001", cb_null);
-	sink->add_handler("raw/002", cb_null);
-	sink->add_handler("raw/003", cb_null);
+/*	sink->add_handler("raw/001", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
+	sink->add_handler("raw/002", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
+	sink->add_handler("raw/003", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));*/
+	sink->add_handler("raw/001", "ircconnection", cb_null);
+	sink->add_handler("raw/002", "ircconnection", cb_null);
+	sink->add_handler("raw/003", "ircconnection", cb_null);
 
-	sink->add_handler("raw/004", std::bind(&IRCConnection::cb_myinfo, this, _1));
-	sink->add_handler("raw/005", std::bind(&IRCConnection::cb_isupport, this, _1));
-	sink->add_handler("raw/042", std::bind(&IRCConnection::cb_yourid, this, _1));
+	sink->add_handler("raw/004", "ircconnection", std::bind(&IRCConnection::cb_myinfo, this, _1));
+	sink->add_handler("raw/005", "ircconnection", std::bind(&IRCConnection::cb_isupport, this, _1));
+	sink->add_handler("raw/042", "ircconnection", std::bind(&IRCConnection::cb_yourid, this, _1));
 
-	/*sink->add_handler("raw/250", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_STATSCONN
-	sink->add_handler("raw/251", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSERCLIENT
-	sink->add_handler("raw/252", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSEROP
-	sink->add_handler("raw/253", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSERUNKNOWN
-	sink->add_handler("raw/254", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSERCHANNELS
-	sink->add_handler("raw/255", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSERME
-	sink->add_handler("raw/265", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LOCALUSERS
-	sink->add_handler("raw/266", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_GLOBALUSERS */
+	/*sink->add_handler("raw/250", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_STATSCONN
+	sink->add_handler("raw/251", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSERCLIENT
+	sink->add_handler("raw/252", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSEROP
+	sink->add_handler("raw/253", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSERUNKNOWN
+	sink->add_handler("raw/254", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSERCHANNELS
+	sink->add_handler("raw/255", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LUSERME
+	sink->add_handler("raw/265", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_LOCALUSERS
+	sink->add_handler("raw/266", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2)); //RPL_GLOBALUSERS */
 
-	sink->add_handler("raw/250", cb_null);
-	sink->add_handler("raw/251", cb_null);
-	sink->add_handler("raw/252", cb_null);
-	sink->add_handler("raw/253", cb_null);
-	sink->add_handler("raw/254", cb_null);
-	sink->add_handler("raw/255", cb_null);
-	sink->add_handler("raw/265", cb_null);
-	sink->add_handler("raw/266", cb_null);
+	sink->add_handler("raw/250", "ircconnection", cb_null);
+	sink->add_handler("raw/251", "ircconnection", cb_null);
+	sink->add_handler("raw/252", "ircconnection", cb_null);
+	sink->add_handler("raw/253", "ircconnection", cb_null);
+	sink->add_handler("raw/254", "ircconnection", cb_null);
+	sink->add_handler("raw/255", "ircconnection", cb_null);
+	sink->add_handler("raw/265", "ircconnection", cb_null);
+	sink->add_handler("raw/266", "ircconnection", cb_null);
 
-	/*sink->add_handler("raw/372", std::bind(&IRCConnection::cb_print, this, _1, _2));
-	sink->add_handler("raw/375", std::bind(&IRCConnection::cb_print, this, _1, _2));*/
+	/*sink->add_handler("raw/372", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
+	sink->add_handler("raw/375", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));*/
 
-	sink->add_handler("raw/372", cb_null);
-	sink->add_handler("raw/375", cb_null);
-	sink->add_handler("raw/376", std::bind(&IRCConnection::cb_end_of_motd, this, _1));
+	sink->add_handler("raw/372", "ircconnection", cb_null);
+	sink->add_handler("raw/375", "ircconnection", cb_null);
+	sink->add_handler("raw/376", "ircconnection", std::bind(&IRCConnection::cb_end_of_motd, this, _1));
 
-	sink->add_handler("raw/privmsg", std::bind(&IRCConnection::cb_ctcp, this, _1));
-	sink->add_handler("raw/privmsg", std::bind(&IRCConnection::cb_rewrite_privmsg, this, _1));
-	sink->add_handler("raw/ping", std::bind(&IRCConnection::cb_ping, this, _1));
+	sink->add_handler("raw/privmsg", "ircconnection", std::bind(&IRCConnection::cb_ctcp, this, _1));
+	sink->add_handler("raw/privmsg", "ircconnection", std::bind(&IRCConnection::cb_rewrite_privmsg, this, _1));
+	sink->add_handler("raw/ping", "ircconnection", std::bind(&IRCConnection::cb_ping, this, _1));
 
 	//sync callbacks
 
-	sink->add_handler("raw/mode", std::bind(&IRCConnection::cb_mode, this, _1));
-	sink->add_handler("raw/join", std::bind(&IRCConnection::cb_join, this, _1));
-	sink->add_handler("raw/332", std::bind(&IRCConnection::cb_topic, this, _1));
-	sink->add_handler("raw/333", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
-	sink->add_handler("raw/353", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
-	sink->add_handler("raw/366", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
+	sink->add_handler("raw/mode", "ircconnection", std::bind(&IRCConnection::cb_mode, this, _1));
+	sink->add_handler("raw/join", "ircconnection", std::bind(&IRCConnection::cb_join, this, _1));
+	sink->add_handler("raw/332", "ircconnection", std::bind(&IRCConnection::cb_topic, this, _1));
+	sink->add_handler("raw/333", "ircconnection", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
+	sink->add_handler("raw/353", "ircconnection", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
+	sink->add_handler("raw/366", "ircconnection", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
 
-	sink->add_handler("raw/notice", cb_null);
-	sink->add_handler("raw/invite", std::bind(&IRCConnection::cb_rewrite_invite, this, _1));
+	sink->add_handler("raw/notice", "ircconnection", cb_null);
+	sink->add_handler("raw/invite", "ircconnection", std::bind(&IRCConnection::cb_rewrite_invite, this, _1));
 }
 
 void IRCConnection::send_line(std::string line)

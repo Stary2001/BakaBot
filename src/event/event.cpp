@@ -6,16 +6,39 @@ EventSink::EventSink() : handlers(), events()
 {
 }
 
-void EventSink::add_handler(std::string type, EventHandler e)
+void EventSink::add_handler(std::string type, std::string id, EventHandler e)
 {
 	std::transform(type.begin(), type.end(), type.begin(), tolower);
 
 	if(handlers.find(type) == handlers.end())
 	{
-		handlers[type] = std::vector<EventHandler>();
+		handlers[type] = std::vector<std::pair<std::string, EventHandler>>();
 	}
 
-	handlers[type].push_back(e);
+	handlers[type].push_back(std::pair<std::string,EventHandler>(id, e));
+}
+
+void EventSink::remove_handler(std::string type, std::string id)
+{
+	auto it = handlers.find(type);
+	if(it != handlers.end())
+	{
+		auto pos = it->second.end();
+		auto it2 = it->second.begin();
+
+		for(; it2 != it->second.end(); it2++)
+		{
+			if(it2->first == id)
+			{
+				break;
+			}
+		}
+
+		if(it2 != it->second.end())
+		{
+			it->second.erase(it2);
+		}
+	}
 }
 
 void EventSink::queue_event(Event *e)
@@ -48,8 +71,9 @@ void EventSink::handle_event()
 
 	if(handlers.find(e->type) != handlers.end())
 	{
-		for(EventHandler ev : handlers[e->type])
+		for(std::pair<std::string, EventHandler> kv : handlers[e->type])
 		{
+			EventHandler ev = kv.second;
 			if(ev(e))
 			{
 				break;
@@ -74,4 +98,7 @@ IRCInviteEvent::IRCInviteEvent(User s, std::string t, std::string c) : IRCEvent(
 {}
 
 IRCMessageEvent::IRCMessageEvent(User s, std::string t, std::string msg) : IRCEvent("irc/message", s), target(t), message(msg)
+{}
+
+IRCCommandEvent::IRCCommandEvent(User s, std::string name, std::string t, std::vector<std::string> p) : IRCEvent("command/" + name, s), target(t), params(p)
 {}

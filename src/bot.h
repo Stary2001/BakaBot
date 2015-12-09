@@ -16,6 +16,8 @@ struct BotConfig
 
 	std::string nickserv_username;
 	std::string nickserv_password;
+
+	std::string command_prefix;
 };
 
 class Bot : public PluginHost, public EventSink
@@ -36,6 +38,7 @@ private:
 	bool print(Event *e);
 	bool end_of_motd(Event *e);
 	bool cb_invite(Event *e);
+	bool cb_command(Event *e);
 
 	void event_thread_func();
 	std::thread event_thread;
