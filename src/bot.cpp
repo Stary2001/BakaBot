@@ -7,6 +7,16 @@ Bot::Bot() : conn(NULL)
 Bot::Bot(BotConfig b) : conn(NULL), config(b)
 {}
 
+void Bot::init_plugins()
+{
+	// Plugin::register_plugin(new SedPlugin()); // todo: dynamic plugins
+
+	for(Plugin *p : active_plugins)
+	{
+		p->init(this);
+	}
+}
+
 bool Bot::print(User &sender, std::vector<std::string> &params)
 {
 	std::cout << "<" << sender.nick << "> " << params[1] << std::endl;
@@ -36,6 +46,10 @@ void Bot::connect(ConnectionDispatcher *d)
 	using namespace std::placeholders;
 	conn = new IRCConnection(config.server, config.server_port);
 
+	load_plugin("./sed.so");
+
+	init_plugins();
+
 	//conn->add_callback("notice", std::bind(&Bot::print, this, _1, _2));
 	conn->add_callback("invite", std::bind(&Bot::cb_invite, this, _1, _2));
 	conn->add_callback("376", std::bind(&Bot::end_of_motd, this, _1, _2));
@@ -56,3 +70,8 @@ void Bot::connect(ConnectionDispatcher *d)
 	}
 }
 
+void Bot::add_callback(std::string s, IRCCallback c)
+{
+	if(conn != NULL)
+		conn->add_callback(s, c);
+}

@@ -3,6 +3,7 @@
 *.lo
 *.o
 *.obj
+*.so
 
 # Precompiled Headers
 *.gch
@@ -28,3 +29,4 @@
 *.app
 
 BakaBot
+Makefile.deps

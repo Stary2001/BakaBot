@@ -5,7 +5,7 @@ int main(int argc, char** argv)
 	ConnectionDispatcher d;
 
 	BotConfig config;
-	config.server = "stary2001.co.uk";
+	config.server = "irc.esper.net";
 	config.server_port = 6667;
 	config.nick = "BakaBot";
 	config.username = "BakaBot";

@@ -92,7 +92,6 @@ bool IRCConnection::cb_print(User &sender, std::vector<std::string> &params)
 
 bool IRCConnection::cb_ctcp(User &sender, std::vector<std::string> &params)
 {
-	std::cout << "testing ctcp " << params[1] << std::endl;
 	std::string s = params[1];
 
 	if(s.at(0) == '\x01' && s.at(s.length() - 1) == '\x01')

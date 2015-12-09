@@ -1,4 +1,6 @@
+#pragma once
 #include "ircconnection.h"
+#include "plugin.h"
 
 struct BotConfig
 {
@@ -15,18 +17,20 @@ struct BotConfig
 	std::string nickserv_password;
 };
 
-class Bot
+class Bot : public PluginHost
 {
 public:
 	Bot();
 	Bot(BotConfig c);
 	void connect(ConnectionDispatcher *d);
-
-private:
+	void add_callback(std::string s, IRCCallback c);
 	IRCConnection *conn;
+private:
 	BotConfig config;
 	IRCState state;
 	std::string current_nick;
+
+	void init_plugins();
 
 	bool print(User &sender, std::vector<std::string> &params);
 	bool end_of_motd(User &sender, std::vector<std::string> &params);

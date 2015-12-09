@@ -1,15 +1,15 @@
-CXXFLAGS=-std=c++11 -Ilibsock/include -g
-LDFLAGS=-Llibsock -lsock
+CXXFLAGS=-std=c++11 -I$(COREPATH)/include/sock -I $(COREPATH)/include/plugin -g -fPIC
+LDFLAGS=-L$(COREPATH)/lib -lsock -lplugin -ldl -fPIC -Wl,-E
 
 # thanks, http://stackoverflow.com/questions/2483182/recursive-wildcards-in-gnu-make
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
-SRC=$(call rwildcard, src, *.cpp)
+SRC=$(filter-out src/plugins%, $(call rwildcard, src, *.cpp))
 OBJ=$(patsubst src/%.cpp, obj/%.o, $(SRC))
 
 obj/%.o: src/%.cpp
 	$(CXX) -c $< -o $@ $(CXXFLAGS)
 
-BakaBot: dirs libsock/libsock.a $(OBJ)
+BakaBot: dirs $(OBJ)
 	$(CXX) $(OBJ) $(LDFLAGS) -o $@
 
 all: BakaBot
@@ -20,8 +20,10 @@ dirs:
 	fi
 
 clean:
-	rm obj/**
+	rm obj/* obj/*/*.o
 
-libsock/libsock.a:
-	cd libsock; \
-	make
+-include Makefile.deps
+Makefile.deps:
+	$(CXX) $(CXXFLAGS) -MM $(SRC) > Makefile.deps
+
+
