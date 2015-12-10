@@ -219,7 +219,7 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 	sink->add_handler("raw/375", "ircconnection", cb_null);
 	sink->add_handler("raw/376", "ircconnection", std::bind(&IRCConnection::cb_end_of_motd, this, _1));
 
-	sink->add_handler("raw/privmsg", "ircconnection", std::bind(&IRCConnection::cb_ctcp, this, _1));
+	sink->add_handler("irc/message", "ircconnection", std::bind(&IRCConnection::cb_ctcp, this, _1));
 	sink->add_handler("raw/privmsg", "ircconnection", std::bind(&IRCConnection::cb_rewrite_privmsg, this, _1));
 	sink->add_handler("raw/ping", "ircconnection", std::bind(&IRCConnection::cb_ping, this, _1));
 
