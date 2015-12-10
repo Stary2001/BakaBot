@@ -1,7 +1,7 @@
 #include <iostream>
 #include <regex>
 #include "plugin.h"
-#include "event.h"
+#include "events.h"
 #include "bot.h"
 
 #define SCROLLBACK_SIZE 100
