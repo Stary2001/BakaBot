@@ -4,15 +4,7 @@ int main(int argc, char** argv)
 {
 	ConnectionDispatcher d;
 
-	BotConfig config;
-	config.server = "irc.esper.net";
-	config.server_port = 6667;
-	config.nick = "BakaBot";
-	config.username = "BakaBot";
-	config.realname = "ur all bakaaaa~";
-
-	config.nickserv_username = "BakaBot";
-	config.nickserv_password = "mPQTxLoWVvDaItwVL8KU";
+#include "botconfig.h"
 
 	config.command_prefix = "@";
 	

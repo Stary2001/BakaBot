@@ -30,3 +30,4 @@
 
 BakaBot
 Makefile.deps
+src/botconfig.h
