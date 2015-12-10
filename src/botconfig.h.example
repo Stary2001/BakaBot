@@ -7,3 +7,4 @@
 
 	config.nickserv_username = "BakaBot";
 	config.nickserv_password = "password";
+	config.command_prefix = "@";

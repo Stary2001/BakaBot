@@ -6,8 +6,6 @@ int main(int argc, char** argv)
 
 #include "botconfig.h"
 
-	config.command_prefix = "@";
-	
 	Bot bot(config);
 	bot.connect(&d);
 	
