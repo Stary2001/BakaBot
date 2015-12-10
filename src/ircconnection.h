@@ -42,6 +42,8 @@ struct IRCServerState
 	std::vector<char> flag_chanmodes;
 
 	std::vector<char> chantypes;
+
+	std::map<char, char> prefixes;
 };
 
 struct User
@@ -49,6 +51,26 @@ struct User
 	std::string nick;
 	std::string ident;
 	std::string host;
+};
+
+enum UserMode
+{
+	NONE,
+	VOICE,
+	HOP,
+	OP
+};
+
+class Channel
+{
+public:
+	Channel();
+	Channel(std::string n);
+	std::string name;
+	std::map<std::string, UserMode> users;
+	std::string topic;
+	std::string topic_changed_by;
+	unsigned int topic_time;
 };
 
 #define SCRATCH_LENGTH 1024
@@ -60,7 +82,10 @@ public:
 	void send_line(std::string line);
 	void send_privmsg(std::string nick, std::string msg);
 	void send_notice(std::string nick, std::string msg);
+	void nick(std::string nick);
 	void join(std::string chan);
+	
+	std::string current_nick;
 
 protected:
 	virtual void handle(uint32_t events);
@@ -75,6 +100,9 @@ private:
 	IRCServerState irc_server;
 
 	EventSink *sink;
+
+	std::map<std::string, Channel> channels;
+	std::vector<std::string> joined_channels;
 
 	void handle_line(std::string line);
 	void parse_line(std::string line, std::string& sender, std::string& command, std::vector<std::string>& params);
@@ -93,8 +121,11 @@ private:
 	// sync callbacks
 	bool cb_mode(Event *e);
 	bool cb_join(Event *e);
+	bool cb_part(Event *e);
 	bool cb_topic(Event *e);
+	bool cb_topic_change(Event *e);
+	bool cb_no_topic(Event *e);
 	bool cb_topic_change_time(Event *e);
 	bool cb_names(Event *e);
-	bool cb_end_names(Event *e);
+	bool cb_end_of_names(Event *e);
 };

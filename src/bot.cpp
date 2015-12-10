@@ -67,7 +67,7 @@ bool Bot::end_of_motd(Event *e)
 bool Bot::cb_invite(Event *e)
 {
 	IRCInviteEvent *ev = reinterpret_cast<IRCInviteEvent*>(e);
-	if(ev->target == current_nick)
+	if(ev->target == conn->current_nick)
 	{
 		conn->join(ev->channel);
 	}
@@ -96,8 +96,7 @@ void Bot::connect(ConnectionDispatcher *d)
 	}
 	else
 	{
-		conn->send_line("NICK " + config.nick);
-		current_nick = config.nick;
+		conn->nick(config.nick);
 		conn->send_line("USER " + config.username + " * * :" + config.realname);
 		state = IRCState::USER;
 	}

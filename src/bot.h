@@ -31,7 +31,6 @@ public:
 private:
 	BotConfig config;
 	IRCState state;
-	std::string current_nick;
 
 	void init_plugins();
 

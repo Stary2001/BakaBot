@@ -21,7 +21,8 @@ dirs:
 
 clean:
 	rm -f obj/*.o obj/*/*.o \
-	rm -f src/plugins/*.so
+	rm -f src/plugins/*.so \
+	rm -f BakaBot
 
 -include Makefile.deps
 Makefile.deps:

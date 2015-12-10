@@ -17,7 +17,7 @@ bool IRCConnection::cb_myinfo(Event *e)
 
 	irc_server.name = ev->params[1];
 	irc_server.version = ev->params[2];
-	std::copy(ev->params[2].begin(), ev->params[2].end(), std::back_inserter(irc_server.usermodes));
+	std::copy(ev->params[3].begin(), ev->params[3].end(), std::back_inserter(irc_server.usermodes));
 	//std::copy(params[3].begin(), params[3].end(), std::back_inserter(server_chanmodes)); // we get these in 005
 	return true;
 }
@@ -42,6 +42,17 @@ bool IRCConnection::cb_isupport(Event *e)
 		if(k == "PREFIX")
 		{
 			std::cout << "prefix " << v << std::endl;
+			v = v.substr(1); // (modes)prefixes
+							// ov(@+)
+			auto b = util::split(v, ')');
+			int i = 0;
+			// 0 = ov, 1 = @+
+
+			for(; i < b[0].length(); i++)
+			{
+				irc_server.prefixes[b[1][i]] = b[0][i];
+				irc_server.alwaysparam_chanmodes.push_back(b[0][i]);
+			}
 		}
 		else if(k == "CHANTYPES")
 		{
@@ -149,31 +160,173 @@ bool IRCConnection::cb_ping(Event *e)
 
 bool IRCConnection::cb_mode(Event *e)
 {
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 	// todo: sync modes.
+
 	return false;
 }
 
 bool IRCConnection::cb_join(Event *e)
 {
-	// todo: sync joins.
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+
+	std::string c = ev->params[0];
+
+	if(channels.find(c) == channels.end())
+	{
+		channels[c] = Channel(c);
+	}
+
+	if(ev->sender.nick == current_nick)
+	{
+		// todo: sync current channels
+		joined_channels.push_back(c);		
+	}
+
+	channels[c].users[ev->sender.nick] = NONE;
+
+
+	return false;
+}
+
+bool IRCConnection::cb_part(Event *e)
+{
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+
+	std::string c = ev->params[0];
+
+	if(channels.find(c) == channels.end())
+	{
+		channels[c] = Channel(c);
+	}
+
+	if(ev->sender.nick == current_nick)
+	{
+		// todo: sync current channels
+		auto it = std::remove(joined_channels.begin(), joined_channels.end(), c);
+		if(it != joined_channels.end())
+		{
+			joined_channels.erase(it);
+		}
+		channels.erase(c);
+	}
+	else
+	{
+		channels[c].users.erase(ev->sender.nick);
+	}
+
 	return false;
 }
 
 bool IRCConnection::cb_topic(Event *e)
 {
-	// todo: sync topics.
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+
+	std::string c = ev->params[1];
+
+	if(channels.find(c) == channels.end())
+	{
+		channels[c] = Channel(c);
+	}
+	channels[c].topic = ev->params[2];
+
+	return false;
+}
+
+bool IRCConnection::cb_topic_change(Event *e)
+{
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+
+	std::string c = ev->params[0];
+
+	if(channels.find(c) == channels.end())
+	{
+		channels[c] = Channel(c);
+	}
+	channels[c].topic = ev->params[1];
+	// TODO: topic_change_time = now
+
+	return false;
+}
+
+bool IRCConnection::cb_no_topic(Event *e)
+{
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+
+	std::string c = ev->params[0];
+
+	if(channels.find(c) == channels.end())
+	{
+		channels[c] = Channel(c);
+	}
+	channels[c].topic = "";
+
 	return false;
 }
 
 bool IRCConnection::cb_topic_change_time(Event *e)
 {
-	// todo: sync topics.
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+
+	std::string c = ev->params[1];
+	if(channels.find(c) == channels.end())
+	{
+		channels[c] = Channel(c);
+	}
+
+	channels[c].topic_changed_by = ev->params[2];
+	channels[c].topic_time = atoi(ev->params[3].c_str());
+
 	return false;
 }
 
 bool IRCConnection::cb_names(Event *e)
 {
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 	// todo: sync names.
+	std::string c = ev->params[2];
+
+	if(channels.find(c) == channels.end())
+	{
+		channels[c] = Channel(c);
+	}
+
+	// 353 BakaBot @ #stary :names
+
+	std::vector<std::string> names = util::split(ev->params[3], ' ');
+	for(std::string n : names)
+	{
+		std::string prefix = n.substr(0, 1);
+		UserMode m = NONE;
+
+		if(prefix == "@") // FIXME: use server-provided info to determine this
+		{
+			m = OP;
+			n = n.substr(1);
+		}
+		else if(prefix == "+")
+		{
+			m = VOICE;
+			n = n.substr(1);
+		}
+		
+		channels[c].users[n] = m;
+	}
+
+	return false;
+}
+
+bool IRCConnection::cb_end_of_names(Event *e) // what does this DO?
+{
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+	
+	std::string c = ev->params[0];
+
+	if(channels.find(c) == channels.end())
+	{
+		channels[c] = Channel(c);
+	}
+
 	return false;
 }
 
@@ -227,10 +380,13 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 
 	sink->add_handler("raw/mode", "ircconnection", std::bind(&IRCConnection::cb_mode, this, _1));
 	sink->add_handler("raw/join", "ircconnection", std::bind(&IRCConnection::cb_join, this, _1));
+	sink->add_handler("raw/part", "ircconnection", std::bind(&IRCConnection::cb_part, this, _1));
+	sink->add_handler("raw/topic", "ircconnection", std::bind(&IRCConnection::cb_topic_change, this, _1));
 	sink->add_handler("raw/332", "ircconnection", std::bind(&IRCConnection::cb_topic, this, _1));
 	sink->add_handler("raw/333", "ircconnection", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
-	sink->add_handler("raw/353", "ircconnection", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
-	sink->add_handler("raw/366", "ircconnection", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
+	sink->add_handler("raw/353", "ircconnection", std::bind(&IRCConnection::cb_names, this, _1));
+	//sink->add_handler("raw/366", "ircconnection", std::bind(&IRCConnection::cb_end_of_names, this, _1));
+	sink->add_handler("raw/366", "ircconnection", cb_null);
 
 	sink->add_handler("raw/notice", "ircconnection", cb_null);
 	sink->add_handler("raw/invite", "ircconnection", std::bind(&IRCConnection::cb_rewrite_invite, this, _1));
@@ -250,6 +406,12 @@ void IRCConnection::send_privmsg(std::string nick, std::string msg)
 void IRCConnection::send_notice(std::string nick, std::string msg)
 {
 	send_line("NOTICE " + nick + " :" + msg);
+}
+
+void IRCConnection::nick(std::string nick)
+{
+	current_nick = nick;
+	send_line("NICK " + nick);
 }
 
 void IRCConnection::join(std::string chan)
@@ -315,6 +477,8 @@ void IRCConnection::parse_line(std::string line_s, std::string& sender, std::str
 	char *line = (char*) line_s.c_str(); // thanks, c++11
 
     int len = line_s.length();
+    int command_end = -1;
+
     int i = 0;
     bool read_sender = false;
     bool reading_params = false;
@@ -345,11 +509,16 @@ void IRCConnection::parse_line(std::string line_s, std::string& sender, std::str
             end = i;
             line[i] = ' ';
         }
-        else if(line[i] == ':' && i != 0 && (line[0] != ':' || read_sender))
+        else if(line[i] == ':' && i != 0 && (line[0] != ':' || read_sender) && line[i-1] == ' ')
         {
             params.push_back(line + i + 1);
             break;
         }
+    }
+
+    if(i == len && end != -1)
+    {
+    	params.push_back(line + end + 1);
     }
 }
 
@@ -402,3 +571,9 @@ void IRCConnection::handle_line(std::string line)
 	RawIRCEvent *ev = new RawIRCEvent("raw/" + command, u, params);
 	sink->queue_event(ev);
 }
+
+Channel::Channel()
+{}
+
+Channel::Channel(std::string n) : name(n)
+{}
