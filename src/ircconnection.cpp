@@ -17,7 +17,7 @@ bool IRCConnection::cb_myinfo(Event *e)
 
 	irc_server.name = ev->params[1];
 	irc_server.version = ev->params[2];
-	std::copy(ev->params[3].begin(), ev->params[3].end(), std::back_inserter(irc_server.usermodes));
+	std::copy(ev->params[3].begin(), ev->params[3].end(), std::inserter(irc_server.usermodes, irc_server.usermodes.begin()));
 	//std::copy(params[3].begin(), params[3].end(), std::back_inserter(server_chanmodes)); // we get these in 005
 	return true;
 }
@@ -51,20 +51,21 @@ bool IRCConnection::cb_isupport(Event *e)
 			for(; i < b[0].length(); i++)
 			{
 				irc_server.prefixes[b[1][i]] = b[0][i];
-				irc_server.alwaysparam_chanmodes.push_back(b[0][i]);
+				irc_server.prefix_modes[b[0][i]] = b[1][i];
+				irc_server.alwaysparam_chanmodes.insert(b[0][i]);
 			}
 		}
 		else if(k == "CHANTYPES")
 		{
-			std::copy(v.begin(), v.end(), std::back_inserter(irc_server.chantypes));
+			std::copy(v.begin(), v.end(), std::inserter(irc_server.chantypes, irc_server.chantypes.begin()));
 		}
 		else if(k == "CHANMODES")
 		{
 			std::vector<std::string> a = util::split(v, ',');
-			std::copy(a[0].begin(), a[0].end(), std::back_inserter(irc_server.list_chanmodes));
-			std::copy(a[1].begin(), a[1].end(), std::back_inserter(irc_server.alwaysparam_chanmodes));
-			std::copy(a[2].begin(), a[2].end(), std::back_inserter(irc_server.setparam_chanmodes));
-			std::copy(a[3].begin(), a[3].end(), std::back_inserter(irc_server.flag_chanmodes));
+			std::copy(a[0].begin(), a[0].end(), std::inserter(irc_server.list_chanmodes, irc_server.list_chanmodes.begin()));
+			std::copy(a[1].begin(), a[1].end(), std::inserter(irc_server.alwaysparam_chanmodes, irc_server.alwaysparam_chanmodes.begin()));
+			std::copy(a[2].begin(), a[2].end(), std::inserter(irc_server.setparam_chanmodes,irc_server.setparam_chanmodes.begin()));
+			std::copy(a[3].begin(), a[3].end(), std::inserter(irc_server.flag_chanmodes,irc_server.flag_chanmodes.begin()));
 		}
 		else if(k == "NETWORK")
 		{
@@ -160,10 +161,113 @@ bool IRCConnection::cb_ping(Event *e)
 
 bool IRCConnection::cb_mode(Event *e)
 {
-	// RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
-	// todo: sync modes.
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 
-	return false;
+	std::string chan = ev->params[0];
+	if(chan.substr(0, 1) != "#") // TODO: USERMODES
+	{
+		return true;
+	}
+
+	if(channels.find(chan) == channels.end())
+	{
+		channels[chan] = Channel(chan);
+	}
+
+	auto it = ev->params.begin() + 1; // [2]
+
+	bool add = true;
+
+	for(; it != ev->params.end(); it++)
+	{
+		auto it2 = it;
+
+		size_t i = 0;
+		if(it2->substr(0,1) == "+" || it2->substr(0,1) == "-")
+		{
+			for(i = 0; i < it2->length(); i++)
+			{
+				char c = (*it2)[i];
+				std::set<char> &list = irc_server.list_chanmodes;
+				std::set<char> &flag = irc_server.flag_chanmodes;
+				std::set<char> &setparam = irc_server.setparam_chanmodes;
+				std::set<char> &alwaysparam = irc_server.alwaysparam_chanmodes;
+
+				if(c == '+')
+				{
+					add = true;
+				}
+				else if(c == '-')
+				{
+					add = false;
+				}
+				else if(list.find(c) != list.end())
+				{
+					auto param = *(++it);
+					Mode& m = channels[chan].get_mode(c, LIST);
+					if(add)
+					{
+						if(std::find(m.list.begin(), m.list.end(), param) == m.list.end())
+						{
+							m.list.push_back(param);
+						}
+					}
+					else
+					{
+						std::vector<std::string>::iterator itt;
+
+						if((itt = std::find(m.list.begin(), m.list.end(), param)) != m.list.end())
+						{
+							m.list.erase(itt);
+						}
+					}
+				}
+				else if(setparam.find(c) != setparam.end() || alwaysparam.find(c) != alwaysparam.end()) // doable because alwaysparam is USUALLY just k (also prefixes)
+				{
+					auto param = *(++it);
+					if(irc_server.prefix_modes.find(c) != irc_server.prefix_modes.end())
+					{
+						if(channels[chan].users.find(param) != channels[chan].users.end())
+						{
+							if(add)
+							{
+								channels[chan].users[param].modes[c] = true;
+							}
+							else
+							{
+								channels[chan].users[param].modes[c] = false;
+							}
+						}
+					}
+					else
+					{
+						Mode& m = channels[chan].get_mode(c, VALUE);
+
+						if(add)
+						{
+							m.value = param;
+						}
+						else
+						{
+							// remove setting
+							if(channels[chan].modes.find(c) != channels[chan].modes.end())
+							{
+								channels[chan].modes.erase(c);
+							}
+						}
+					}
+				}
+				else if(flag.find(c) != flag.end())
+				{
+					auto param = *(++it);
+					Mode& m = channels[chan].get_mode(c, FLAG);
+					m.active = add;
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 bool IRCConnection::cb_join(Event *e)
@@ -183,8 +287,7 @@ bool IRCConnection::cb_join(Event *e)
 		joined_channels.push_back(c);		
 	}
 
-	channels[c].users[ev->sender.nick] = NONE;
-
+	channels[c].users[ev->sender.nick] = get_user(ev->sender);
 
 	return false;
 }
@@ -297,20 +400,16 @@ bool IRCConnection::cb_names(Event *e)
 	for(std::string n : names)
 	{
 		std::string prefix = n.substr(0, 1);
-		UserMode m = NONE;
 
-		if(prefix == "@") // FIXME: use server-provided info to determine this
+		if(irc_server.prefixes.find(prefix[0]) != irc_server.prefixes.end())
 		{
-			m = OP;
 			n = n.substr(1);
+			if(channels[c].users.find(n) == channels[c].users.end())
+			{
+				channels[c].users[n] = ChannelUser(get_user(n));
+			}
+			channels[c].users[n].modes[irc_server.prefixes[prefix[0]]] = true;
 		}
-		else if(prefix == "+")
-		{
-			m = VOICE;
-			n = n.substr(1);
-		}
-		
-		channels[c].users[n] = m;
 	}
 
 	return false;
@@ -578,8 +677,55 @@ void IRCConnection::handle_line(std::string line)
 	sink->queue_event(ev);
 }
 
+User* IRCConnection::get_user(std::string name)
+{
+	if(global_users.find(name) == global_users.end())
+	{
+		User *u = new User();
+		global_users[name] = u;
+	}
+
+	return global_users[name];
+}
+
+User* IRCConnection::get_user(User u)
+{
+	if(global_users.find(u.nick) == global_users.end())
+	{
+		User *u_ = new User();
+		global_users[u.nick] = u_;
+		u_->nick = u.nick;
+	}
+
+	if(global_users[u.nick]->ident == "")
+	{
+		global_users[u.nick]->ident = u.ident;
+		global_users[u.nick]->host = u.host;
+	}
+	return global_users[u.nick];
+}
+
 Channel::Channel()
 {}
 
 Channel::Channel(std::string n) : name(n)
 {}
+
+Mode& Channel::get_mode(char c, ModeType t)
+{
+	if(modes.find(c) == modes.end())
+	{
+		Mode m;
+		m.type = t;
+		modes[c] = m;
+	}
+	return modes[c];
+}
+
+Mode::Mode() {}
+Mode::Mode(char c) : mode(c) {}
+Mode::Mode(char c, bool flag): type(FLAG), mode(c)  {}
+Mode::Mode(char c, std::string v): type(VALUE), mode(c), value(v) {}
+
+ChannelUser::ChannelUser() : user(NULL) {}
+ChannelUser::ChannelUser(User *u) : user(u) {}
