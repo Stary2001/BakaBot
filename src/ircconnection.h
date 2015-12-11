@@ -19,16 +19,6 @@ enum IRCState
 	ONLINE
 };
 
-//AWAYLEN=200 CALLERID=g CASEMAPPING=rfc1459 CHANMODES=IXZbew,k,FHJLdfjl,ABCDKMNOPQRTcimnprstuz CHANNELLEN=64 CHANTYPES=# CHARSET=ascii ELIST=MU EXCEPTS=e EXTBAN=,ABCNOQRTUcz FNC INVEX=I KICKLEN=255
-
-enum UserMode
-{
-	NONE = 0,
-	OP = 1,
-	HOP = 2,
-	VOICE = 4
-};
-
 struct IRCServerState
 {
 	std::string name;
