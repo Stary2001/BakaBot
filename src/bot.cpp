@@ -55,12 +55,13 @@ bool Bot::cb_command(Event *e)
 
 bool Bot::end_of_motd(Event *e)
 {
-	IRCConnectedEvent *ev = reinterpret_cast<IRCConnectedEvent*>(e);
+	//IRCConnectedEvent *ev = reinterpret_cast<IRCConnectedEvent*>(e);
 
 	if(config.nickserv_username != "" && config.nickserv_password != "")
 	{
 		conn->send_privmsg("NickServ", "identify " + config.nickserv_username + " " + config.nickserv_password);
 	}
+
 	return false;
 }
 

@@ -30,6 +30,8 @@ bool AdminPlugin::load(Event *e)
 		p->init(bot);
 		bot->conn->send_privmsg(ev->target, "Loaded plugin " + ev->params[0]);
 	}
+
+	return true;
 }
 
 bool AdminPlugin::unload(Event *e)
@@ -39,6 +41,8 @@ bool AdminPlugin::unload(Event *e)
 	{
 		bot->conn->send_privmsg(ev->target, "Unloaded plugin " + ev->params[0]);
 	}
+
+	return true;
 }
 
 void AdminPlugin::deinit(PluginHost *h)

@@ -2,7 +2,7 @@
 #include <algorithm> // for tolower
 #include <iostream>
 
-EventSink::EventSink() : handlers(), events()
+EventSink::EventSink()
 {
 }
 
@@ -23,7 +23,6 @@ void EventSink::remove_handler(std::string type, std::string id)
 	auto it = handlers.find(type);
 	if(it != handlers.end())
 	{
-		auto pos = it->second.end();
 		auto it2 = it->second.begin();
 
 		for(; it2 != it->second.end(); it2++)

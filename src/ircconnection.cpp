@@ -30,7 +30,7 @@ bool IRCConnection::cb_isupport(Event *e)
 	for(; it != (ev->params.end()-1) ; ++it)
 	{
 		std::string s = *it;
-		int pos = s.find('=');
+		unsigned int pos = s.find('=');
 		std::string k = s.substr(0, pos);
 		if(k == "MAP")
 		{
@@ -45,7 +45,7 @@ bool IRCConnection::cb_isupport(Event *e)
 			v = v.substr(1); // (modes)prefixes
 							// ov(@+)
 			auto b = util::split(v, ')');
-			int i = 0;
+			unsigned int i = 0;
 			// 0 = ov, 1 = @+
 
 			for(; i < b[0].length(); i++)
@@ -160,7 +160,7 @@ bool IRCConnection::cb_ping(Event *e)
 
 bool IRCConnection::cb_mode(Event *e)
 {
-	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+	// RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 	// todo: sync modes.
 
 	return false;
@@ -275,7 +275,7 @@ bool IRCConnection::cb_topic_change_time(Event *e)
 	}
 
 	channels[c].topic_changed_by = ev->params[2];
-	channels[c].topic_time = atoi(ev->params[3].c_str());
+	channels[c].topic_time = stoi(ev->params[3]);
 
 	return false;
 }
@@ -333,7 +333,7 @@ bool IRCConnection::cb_end_of_names(Event *e) // what does this DO?
 IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port) : Connection(host, port), sink(e)
 {
 	using namespace std::placeholders;
-	scratch = (char*) malloc(SCRATCH_LENGTH);
+	scratch = new char[SCRATCH_LENGTH];
 	scratch_off = 0;
 
 /*	sink->add_handler("raw/001", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
@@ -390,6 +390,12 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 
 	sink->add_handler("raw/notice", "ircconnection", cb_null);
 	sink->add_handler("raw/invite", "ircconnection", std::bind(&IRCConnection::cb_rewrite_invite, this, _1));
+}
+
+
+IRCConnection::~IRCConnection() 
+{
+	delete[] scratch;
 }
 
 void IRCConnection::send_line(std::string line)
@@ -477,7 +483,6 @@ void IRCConnection::parse_line(std::string line_s, std::string& sender, std::str
 	char *line = (char*) line_s.c_str(); // thanks, c++11
 
     int len = line_s.length();
-    int command_end = -1;
 
     int i = 0;
     bool read_sender = false;
@@ -525,8 +530,8 @@ void IRCConnection::parse_line(std::string line_s, std::string& sender, std::str
 User IRCConnection::parse_hostmask(std::string hostmask)
 {
 	User u;
-	int bang = hostmask.find('!');
-	int at = hostmask.find('@');
+	unsigned int bang = hostmask.find('!');
+	unsigned int at = hostmask.find('@');
 	if(bang == std::string::npos || at == std::string::npos)
 	{
 		u.nick = hostmask;

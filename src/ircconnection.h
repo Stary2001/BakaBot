@@ -79,6 +79,7 @@ class IRCConnection : public Connection
 {
 public:
 	IRCConnection(EventSink *e, std::string host, unsigned short port);
+	virtual ~IRCConnection();
 	void send_line(std::string line);
 	void send_privmsg(std::string nick, std::string msg);
 	void send_notice(std::string nick, std::string msg);
