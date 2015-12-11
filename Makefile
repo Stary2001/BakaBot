@@ -3,7 +3,8 @@ LDFLAGS=-L$(COREPATH)/lib -lsock -lplugin -ldl -lpthread -fPIC -Wl,-E
 
 # thanks, http://stackoverflow.com/questions/2483182/recursive-wildcards-in-gnu-make
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
-SRC=$(filter-out src/plugins%, $(call rwildcard, src, *.cpp))
+SRC=$(call rwildcard, src, *.cpp)
+
 OBJ=$(patsubst src/%.cpp, obj/%.o, $(SRC))
 
 obj/%.o: src/%.cpp
@@ -25,7 +26,5 @@ clean:
 	rm -f BakaBot
 
 -include Makefile.deps
-Makefile.deps:
+Makefile.deps: $(SRC)
 	$(CXX) $(CXXFLAGS) -MM $(SRC) > Makefile.deps
-
-

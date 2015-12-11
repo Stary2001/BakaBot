@@ -478,6 +478,7 @@ void IRCConnection::handle(uint32_t events)
 	}
 }
 
+// here be dragons
 void IRCConnection::parse_line(std::string line_s, std::string& sender, std::string& command, std::vector<std::string>& params)
 {
 	char *line = (char*) line_s.c_str(); // thanks, c++11
@@ -530,8 +531,8 @@ void IRCConnection::parse_line(std::string line_s, std::string& sender, std::str
 User IRCConnection::parse_hostmask(std::string hostmask)
 {
 	User u;
-	unsigned int bang = hostmask.find('!');
-	unsigned int at = hostmask.find('@');
+	size_t bang = hostmask.find('!');
+	size_t at = hostmask.find('@');
 	if(bang == std::string::npos || at == std::string::npos)
 	{
 		u.nick = hostmask;
