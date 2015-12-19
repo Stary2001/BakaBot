@@ -283,11 +283,13 @@ bool IRCConnection::cb_join(Event *e)
 
 	if(ev->sender.nick == current_nick)
 	{
-		// todo: sync current channels
-		joined_channels.push_back(c);		
+		send_line("WHO " + c + " %cuhnarsf");
+		channels[c].syncing	= true;
+		joined_channels.push_back(c);
 	}
 
-	channels[c].users[ev->sender.nick] = get_user(ev->sender);
+	channels[c].users[ev->sender.nick] = ChannelUser(get_user(ev->sender.nick));
+	send_line("WHO " + ev->sender.nick + " %cuhnarsf");
 
 	return false;
 }
@@ -305,7 +307,6 @@ bool IRCConnection::cb_part(Event *e)
 
 	if(ev->sender.nick == current_nick)
 	{
-		// todo: sync current channels
 		auto it = std::remove(joined_channels.begin(), joined_channels.end(), c);
 		if(it != joined_channels.end())
 		{
@@ -383,47 +384,66 @@ bool IRCConnection::cb_topic_change_time(Event *e)
 	return false;
 }
 
-bool IRCConnection::cb_names(Event *e)
+bool IRCConnection::cb_who(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
-	// todo: sync names.
-	std::string c = ev->params[2];
 
-	if(channels.find(c) == channels.end())
+	std::string n = ev->params[5];
+
+	User *u = get_user(n);
+	if(!u->synced)
 	{
-		channels[c] = Channel(c);
+		u->ident = ev->params[2];
+		u->host = ev->params[3];
+		u->server = ev->params[4];
+		u->account = ev->params[7];
+		u->realname = ev->params[8];
+		u->synced = true;
 	}
 
-	// 353 BakaBot @ #stary :names
-
-	std::vector<std::string> names = util::split(ev->params[3], ' ');
-	for(std::string n : names)
+	std::string c = ev->params[1];
+	if(c != "*")
 	{
-		std::string prefix = n.substr(0, 1);
-
-		if(irc_server.prefixes.find(prefix[0]) != irc_server.prefixes.end())
+		if(channels.find(c) == channels.end())
 		{
-			n = n.substr(1);
-			if(channels[c].users.find(n) == channels[c].users.end())
+			channels[c] = Channel(c);
+		}
+		if(channels[c].users.find(n) == channels[c].users.end())
+		{
+			channels[c].users[n] = ChannelUser(u);
+		}
+		
+		ChannelUser &cu = channels[c].users[n];
+
+		for(char c : ev->params[6])
+		{
+			if(c != 'H' && c != 'G' && c != '*')
 			{
-				channels[c].users[n] = ChannelUser(get_user(n));
+				if(irc_server.prefixes.find(c) != irc_server.prefixes.end())
+				{
+					cu.modes[irc_server.prefixes[c]] = true;
+				}
 			}
-			channels[c].users[n].modes[irc_server.prefixes[prefix[0]]] = true;
 		}
 	}
 
 	return false;
 }
 
-bool IRCConnection::cb_end_of_names(Event *e) // what does this DO?
+bool IRCConnection::cb_end_who(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 	
-	std::string c = ev->params[0];
+	std::string c = ev->params[1];
 
-	if(channels.find(c) == channels.end())
+	if(c != "*")
 	{
-		channels[c] = Channel(c);
+		if(channels.find(c) == channels.end())
+		{
+			channels[c] = Channel(c);
+		}
+
+		channels[c].syncing = false;
 	}
 
 	return false;
@@ -483,9 +503,15 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 	sink->add_handler("raw/topic", "ircconnection", std::bind(&IRCConnection::cb_topic_change, this, _1));
 	sink->add_handler("raw/332", "ircconnection", std::bind(&IRCConnection::cb_topic, this, _1));
 	sink->add_handler("raw/333", "ircconnection", std::bind(&IRCConnection::cb_topic_change_time, this, _1));
-	sink->add_handler("raw/353", "ircconnection", std::bind(&IRCConnection::cb_names, this, _1));
+
+	//sink->add_handler("raw/353", "ircconnection", std::bind(&IRCConnection::cb_names, this, _1));
 	//sink->add_handler("raw/366", "ircconnection", std::bind(&IRCConnection::cb_end_of_names, this, _1));
+	sink->add_handler("raw/353", "ircconnection", cb_null);
 	sink->add_handler("raw/366", "ircconnection", cb_null);
+
+	sink->add_handler("raw/352", "ircconnection", std::bind(&IRCConnection::cb_who, this, _1));
+	sink->add_handler("raw/354", "ircconnection", std::bind(&IRCConnection::cb_who, this, _1));
+	sink->add_handler("raw/315", "ircconnection", std::bind(&IRCConnection::cb_end_who, this, _1));
 
 	sink->add_handler("raw/notice", "ircconnection", cb_null);
 	sink->add_handler("raw/invite", "ircconnection", std::bind(&IRCConnection::cb_rewrite_invite, this, _1));
@@ -682,27 +708,12 @@ User* IRCConnection::get_user(std::string name)
 	if(global_users.find(name) == global_users.end())
 	{
 		User *u = new User();
+		u->synced = false;
+		u->nick = name;
 		global_users[name] = u;
 	}
 
 	return global_users[name];
-}
-
-User* IRCConnection::get_user(User u)
-{
-	if(global_users.find(u.nick) == global_users.end())
-	{
-		User *u_ = new User();
-		global_users[u.nick] = u_;
-		u_->nick = u.nick;
-	}
-
-	if(global_users[u.nick]->ident == "")
-	{
-		global_users[u.nick]->ident = u.ident;
-		global_users[u.nick]->host = u.host;
-	}
-	return global_users[u.nick];
 }
 
 Channel::Channel()

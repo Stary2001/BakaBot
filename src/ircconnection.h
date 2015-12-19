@@ -52,6 +52,11 @@ struct User
 	std::string nick;
 	std::string ident;
 	std::string host;
+	std::string server;
+	std::string account;
+	std::string realname;
+	
+	bool synced;
 };
 
 enum ModeType
@@ -97,6 +102,8 @@ public:
 	unsigned int topic_time;
 	std::map<char, Mode> modes;
 	Mode& get_mode(char c, ModeType m);
+
+	bool syncing;
 };
 
 #define SCRATCH_LENGTH 1024
@@ -155,9 +162,8 @@ private:
 	bool cb_topic_change(Event *e);
 	bool cb_no_topic(Event *e);
 	bool cb_topic_change_time(Event *e);
-	bool cb_names(Event *e);
-	bool cb_end_of_names(Event *e);
+	bool cb_who(Event *e);
+	bool cb_end_who(Event *e);
 
 	User* get_user(std::string name);
-	User* get_user(User u);
 };
