@@ -454,6 +454,7 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 	using namespace std::placeholders;
 	scratch = new char[SCRATCH_LENGTH];
 	scratch_off = 0;
+	scratch_len = 0;
 
 /*	sink->add_handler("raw/001", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
 	sink->add_handler("raw/002", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
@@ -566,6 +567,10 @@ void IRCConnection::handle(uint32_t events)
 		{
 			// ??
 			std::cerr << "read returned 0?" << std::endl;
+		}
+		if(r == -1)
+		{
+			std::cerr << errno << std::endl;
 		}
 		scratch_len += r;
 

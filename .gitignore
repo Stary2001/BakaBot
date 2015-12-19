@@ -33,3 +33,4 @@ Makefile.deps
 src/botconfig.h
 BakaBot-plugins/
 build/
+config.json

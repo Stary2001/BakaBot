@@ -1,35 +1,21 @@
 #pragma once
 #include "plugin.h"
 #include "events.h"
+#include "config.h"
 #include <thread>
-
-struct BotConfig
-{
-	std::string server;
-	unsigned short server_port;
-	std::string server_password;
-
-	std::string username;
-	std::string nick;
-	std::string ident;
-	std::string realname;
-
-	std::string nickserv_username;
-	std::string nickserv_password;
-
-	std::string command_prefix;
-};
 
 class Bot : public PluginHost, public EventSink
 {
 public:
 	Bot();
-	Bot(BotConfig c);
+	Bot(Config *c);
 	void connect(ConnectionDispatcher *d);
 
 	IRCConnection *conn;
 private:
-	BotConfig config;
+
+	Config *config;
+	//BotConfig config;
 	IRCState state;
 
 	void init_plugins();

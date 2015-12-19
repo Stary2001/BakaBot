@@ -11,10 +11,10 @@ void Bot::event_thread_func()
 	}
 }
 
-Bot::Bot() : conn(NULL), event_thread(std::bind(&Bot::event_thread_func, this))
+Bot::Bot() : conn(NULL), config(NULL), event_thread(std::bind(&Bot::event_thread_func, this))
 {}
 
-Bot::Bot(BotConfig b) : conn(NULL), config(b), event_thread(std::bind(&Bot::event_thread_func, this))
+Bot::Bot(Config *c) : conn(NULL), config(c), event_thread(std::bind(&Bot::event_thread_func, this))
 {}
 
 void Bot::init_plugins()
@@ -38,9 +38,11 @@ bool Bot::print(Event *e)
 bool Bot::cb_command(Event *e)
 {
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
-	if(ev->message.substr(0, config.command_prefix.length()) == config.command_prefix)
+	std::string prefix = config->get("prefix").asString();
+
+	if(ev->message.substr(0, prefix.length()) == prefix)
 	{
-		ev->message = ev->message.substr(config.command_prefix.length());
+		ev->message = ev->message.substr(prefix.length());
 		std::cout << "got command " << ev->message << std::endl;
 		auto bits = util::split(ev->message, ' ');
 		std::string name = *(bits.begin());
@@ -56,10 +58,12 @@ bool Bot::cb_command(Event *e)
 bool Bot::end_of_motd(Event *e)
 {
 	//IRCConnectedEvent *ev = reinterpret_cast<IRCConnectedEvent*>(e);
+	std::string uname = config->get("server.nickserv.username").asString();
+	std::string pass = config->get("server.nickserv.password").asString();
 
-	if(config.nickserv_username != "" && config.nickserv_password != "")
+	if(uname != "" && pass != "")
 	{
-		conn->send_privmsg("NickServ", "identify " + config.nickserv_username + " " + config.nickserv_password);
+		conn->send_privmsg("NickServ", "identify " + uname + " " + pass);
 	}
 
 	return false;
@@ -78,7 +82,10 @@ bool Bot::cb_invite(Event *e)
 void Bot::connect(ConnectionDispatcher *d)
 {
 	using namespace std::placeholders;
-	conn = new IRCConnection(this, config.server, config.server_port);
+	std::string server = config->get("server.host").asString();
+	short port = config->get("server.port").asInt();
+
+	conn = new IRCConnection(this, server, port);
 
 	active_plugins["admin"] = new AdminPlugin();
 
@@ -90,15 +97,22 @@ void Bot::connect(ConnectionDispatcher *d)
 
 	d->add(conn);
 	state = IRCState::CONNECTED;
-	if(config.server_password != "")
+
+	std::string pass = config->get("server.password").asString();
+
+	if(pass != "")
 	{
-		conn->send_line("PASS " + config.server_password);
+		conn->send_line("PASS " + pass);
 		state = IRCState::PASS;
 	}
 	else
 	{
-		conn->nick(config.nick);
-		conn->send_line("USER " + config.username + " * * :" + config.realname);
+		std::string nick = config->get("server.nick").asString();
+		std::string uname = config->get("server.username").asString();
+		std::string rname = config->get("server.realname").asString();
+
+		conn->nick(nick);
+		conn->send_line("USER " + uname + " * * :" + rname);
 		state = IRCState::USER;
 	}
 }

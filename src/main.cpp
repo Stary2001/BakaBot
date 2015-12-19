@@ -1,12 +1,15 @@
 #include "bot.h"
+#include "logger.h"
+#include "config.h"
 
 int main(int argc, char** argv)
 {
+	Logger::instance = new StderrLogger();
 	ConnectionDispatcher d;
-
-#include "botconfig.h"
-
-	Bot bot(config);
+	
+	Config *c = Config::load("config.json");
+	
+	Bot bot(c);
 	bot.connect(&d);
 	
 	while(true)
