@@ -111,7 +111,7 @@ bool AdminPlugin::permissions(Event *e)
 		{
 			l += s + (s != *v->as_list().rbegin() ? ", " : ""); 
 		}
-		bot->conn->send_privmsg(ev->target, l);
+		bot->conn->send_privmsg(ev->target, bot->conn->antiping(ev->target, l));
 	}
 	else
 	{
@@ -176,7 +176,7 @@ bool AdminPlugin::group(Event *e)
 		{
 			l += s + (s != *v->as_list().rbegin() ? ", " : ""); 
 		}
-		bot->conn->send_privmsg(ev->target, l);
+		bot->conn->send_privmsg(ev->target, bot->conn->antiping(ev->target, l));
 	}
 	else
 	{
