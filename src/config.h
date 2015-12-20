@@ -28,7 +28,7 @@ public:
 	ConfigValue(int i);
 	NodeType type;
 	std::string string;
-	int integer;
+	long integer;
 	std::vector<std::string> list;
 	std::map<std::string, ConfigValue> map;
 };
@@ -38,7 +38,7 @@ class ConfigNode
 public:
 	NodeType type();
 	std::string as_string();
-	int as_int();
+	long as_int();
 	std::vector<std::string>& as_list();
 	std::map<std::string, ConfigValue>& as_map();
 

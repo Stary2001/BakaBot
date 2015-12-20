@@ -55,7 +55,7 @@ std::string ConfigNode::as_string()
     return v.string;
 }
 
-int ConfigNode::as_int()
+long ConfigNode::as_int()
 {
     return v.integer;
 }
@@ -123,7 +123,7 @@ ConfigValue deserialize(std::string val)
     else if(type == "int")
     {
         v.type = NodeType::Int;
-        v.integer = stoi(val);
+        v.integer = stol(val);
     }
     else if(type == "list")
     {
