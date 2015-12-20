@@ -108,6 +108,8 @@ public:
 	void nick(std::string nick);
 	void join(std::string chan);
 	
+	std::string antiping(std::string c, std::string msg);
+
 	std::string current_nick;
 
 protected:

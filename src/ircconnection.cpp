@@ -728,6 +728,26 @@ User* IRCConnection::get_user(std::string name)
 	return global_users[name];
 }
 
+std::string IRCConnection::antiping(std::string c, std::string msg)
+{
+	if(channels.find(c) == channels.end()) return msg;
+
+	Channel &ch = channels[c];
+	for(auto u : ch.users)
+	{
+		int a = msg.find(u.first);
+		if(a != std::string::npos)
+		{
+			if(u.first.length() != 1)
+			{
+				msg.replace(a, u.first.length(), u.first.substr(0, 1) + "\xf" + u.first.substr(1));
+			}
+		}
+	}
+
+	return msg;
+}
+
 Channel::Channel()
 {}
 
