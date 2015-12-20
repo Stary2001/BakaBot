@@ -259,7 +259,7 @@ bool IRCConnection::cb_mode(Event *e)
 				}
 				else if(flag.find(c) != flag.end())
 				{
-					auto param = *(++it);
+					//auto param = *(++it);
 					Mode& m = channels[chan].get_mode(c, FLAG);
 					m.active = add;
 				}
@@ -738,7 +738,7 @@ Mode& Channel::get_mode(char c, ModeType t)
 {
 	if(modes.find(c) == modes.end())
 	{
-		Mode m;
+		Mode m(c);
 		m.type = t;
 		modes[c] = m;
 	}
