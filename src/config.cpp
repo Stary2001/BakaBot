@@ -65,6 +65,11 @@ std::vector<std::string> & ConfigNode::as_list()
     return v.list;
 }
 
+std::map<std::string, ConfigValue> & ConfigNode::as_map()
+{
+    return v.map;
+}
+
 std::string serialize(ConfigValue &v)
 {
     std::string val;
@@ -82,6 +87,15 @@ std::string serialize(ConfigValue &v)
         for(auto s : v.list)
         {
             val += s + (s != *v.list.rbegin() ? "|" : "");
+        }
+        val += "]";
+    }
+    else if(v.type == NodeType::Map)
+    {
+        val = "map:[";
+        for(auto kv : v.map)
+        {
+            val += kv.first + "`" + serialize(kv.second) + (kv != *v.map.rbegin() ? "~" : "");
         }
         val += "]";
     }
@@ -117,6 +131,19 @@ ConfigValue deserialize(std::string val)
         val = val.substr(1);
         val = val.substr(0, val.length() - 1);
         v.list = util::split(val, '|');
+    }
+    else if(type == "map")
+    {
+        v.type = NodeType::Map;
+        val = val.substr(1);
+        val = val.substr(0, val.length() - 1);
+
+        auto parts = util::split(val, '~');
+        for(auto kv : parts)
+        {
+            auto partss = util::split(kv, '`');
+            v.map[partss[0]] = deserialize(partss[1]);
+        }
     }
 
     return v;
