@@ -31,14 +31,14 @@ bool Bot::print(Event *e)
 {
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
 
-	std::cout << "<" << ev->sender.nick << "> " << ev->message << std::endl;
+	std::cout << "<" << ev->sender->nick << "> " << ev->message << std::endl;
 	return false;
 }
 
 bool Bot::cb_command(Event *e)
 {
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
-	std::string prefix = config->get("prefix").asString();
+	std::string prefix = config->get("prefix")->as_string();
 
 	if(ev->message.substr(0, prefix.length()) == prefix)
 	{
@@ -48,7 +48,15 @@ bool Bot::cb_command(Event *e)
 		std::string name = *(bits.begin());
 		bits.erase(bits.begin());
 
-		queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
+		if(check_permissions(ev->sender, name))
+		{
+			queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
+		}
+		else
+		{
+			conn->send_privmsg(ev->target, "no permissions!");
+		}
+
 		return true;
 	}
 
@@ -58,8 +66,8 @@ bool Bot::cb_command(Event *e)
 bool Bot::end_of_motd(Event *e)
 {
 	//IRCConnectedEvent *ev = reinterpret_cast<IRCConnectedEvent*>(e);
-	std::string uname = config->get("server.nickserv.username").asString();
-	std::string pass = config->get("server.nickserv.password").asString();
+	std::string uname = config->get("server.nickserv.username")->as_string();
+	std::string pass = config->get("server.nickserv.password")->as_string();
 
 	if(uname != "" && pass != "")
 	{
@@ -82,8 +90,8 @@ bool Bot::cb_invite(Event *e)
 void Bot::connect(ConnectionDispatcher *d)
 {
 	using namespace std::placeholders;
-	std::string server = config->get("server.host").asString();
-	short port = config->get("server.port").asInt();
+	std::string server = config->get("server.host")->as_string();
+	short port = config->get("server.port")->as_int();
 
 	conn = new IRCConnection(this, server, port);
 
@@ -98,7 +106,7 @@ void Bot::connect(ConnectionDispatcher *d)
 	d->add(conn);
 	state = IRCState::CONNECTED;
 
-	std::string pass = config->get("server.password").asString();
+	std::string pass = config->get("server.password")->as_string();
 
 	if(pass != "")
 	{
@@ -107,12 +115,51 @@ void Bot::connect(ConnectionDispatcher *d)
 	}
 	else
 	{
-		std::string nick = config->get("server.nick").asString();
-		std::string uname = config->get("server.username").asString();
-		std::string rname = config->get("server.realname").asString();
+		std::string nick = config->get("server.nick")->as_string();
+		std::string uname = config->get("server.username")->as_string();
+		std::string rname = config->get("server.realname")->as_string();
 
 		conn->nick(nick);
 		conn->send_line("USER " + uname + " * * :" + rname);
 		state = IRCState::USER;
 	}
+}
+
+bool Bot::check_permissions(User *u, std::string command)
+{
+	if(!u->synced || u->account == "*")
+	{
+		return false;
+	}
+
+	ConfigNode *v = config->get("permissions." + command);
+
+	if(v->type() == NodeType::List)
+	{
+		for(auto a : v->as_list())
+		{
+			std::string b = a;
+			if(b == u->account)
+			{
+				return true;
+			}
+			else if(b.substr(0, 6) == "group/")
+			{
+				b = b.substr(6);
+				ConfigNode *v2 = config->get("groups." + b);
+				if(v2->type() == NodeType::List)
+				{
+					for(auto c : v2->as_list())
+					{
+						if(c == u->account)
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false;
 }

@@ -12,9 +12,9 @@ public:
 	void connect(ConnectionDispatcher *d);
 
 	IRCConnection *conn;
+	Config *config;
 private:
 
-	Config *config;
 	//BotConfig config;
 	IRCState state;
 
@@ -24,6 +24,8 @@ private:
 	bool end_of_motd(Event *e);
 	bool cb_invite(Event *e);
 	bool cb_command(Event *e);
+
+	bool check_permissions(User *u, std::string command);
 
 	void event_thread_func();
 	std::thread event_thread;

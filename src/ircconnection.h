@@ -1,5 +1,6 @@
 #pragma once
 #include "connection.h"
+#include "user.h"
 #include <vector>
 #include <set>
 
@@ -45,18 +46,6 @@ struct IRCServerState
 
 	std::map<char, char> prefixes;
 	std::map<char, char> prefix_modes;
-};
-
-struct User
-{
-	std::string nick;
-	std::string ident;
-	std::string host;
-	std::string server;
-	std::string account;
-	std::string realname;
-	
-	bool synced;
 };
 
 enum ModeType

@@ -8,4 +8,6 @@ private:
 	Bot *bot;
 	bool load(Event *e);
 	bool unload(Event *e);
+	bool permissions(Event *e);
+	bool group(Event *e);
 };

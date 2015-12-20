@@ -1,6 +1,7 @@
 #include "plugin.h"
 #include "bot.h"
 #include "events.h"
+#include <algorithm>
 #include <functional>
 #include "admin.h"
 #include <iostream>
@@ -11,7 +12,8 @@ void AdminPlugin::init(PluginHost *h)
 	Bot *b = (Bot*)h;
 	b->add_handler("command/load", "admin", std::bind(&AdminPlugin::load, this, _1));
 	b->add_handler("command/unload", "admin", std::bind(&AdminPlugin::unload, this, _1));
-
+	b->add_handler("command/perms", "admin", std::bind(&AdminPlugin::permissions, this, _1));
+	b->add_handler("command/group", "admin", std::bind(&AdminPlugin::group, this, _1));
 	bot = b;
 }
 
@@ -40,6 +42,81 @@ bool AdminPlugin::unload(Event *e)
 	if(bot->unload_plugin(ev->params[0]))
 	{
 		bot->conn->send_privmsg(ev->target, "Unloaded plugin " + ev->params[0]);
+	}
+
+	return true;
+}
+
+bool AdminPlugin::permissions(Event *e)
+{
+	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
+	std::string usage = "Usage: perms [add|del|list] [command] [user]";
+	if(ev->params.size() < 3)
+	{
+		bot->conn->send_privmsg(ev->target, usage);
+		return true;
+	}
+
+	if(ev->params[0] == "add")
+	{
+		ConfigNode *v = bot->config->get("permissions." + ev->params[1]);
+		if(v->type() == NodeType::None)
+		{
+			ConfigValue vv = ConfigValue();
+			vv.type = NodeType::List;
+			vv.list.push_back(ev->params[2]);
+			bot->config->set("permissions." + ev->params[1], vv);
+		}
+		else
+		{
+			v->as_list().push_back(ev->params[2]);
+		}
+	}
+	else if(ev->params[0] == "del")
+	{
+		ConfigNode *v = bot->config->get("permissions." + ev->params[1]);
+		if(v->type() == NodeType::None) return true;
+
+		auto it = std::find(v->as_list().begin(), v->as_list().end(), ev->params[2]);
+		if(it != v->as_list().end())
+		{
+			v->as_list().erase(it);
+		}
+	}
+	else if(ev->params[0] == "list")
+	{
+		ConfigNode *v = bot->config->get("permissions." + ev->params[1]);
+		if(v->type() == NodeType::None) return true;
+		// todo :D
+		
+	}
+	else
+	{
+		bot->conn->send_privmsg(ev->target, usage);
+	}
+
+	return true;
+}
+
+bool AdminPlugin::group(Event *e)
+{
+	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
+
+	if(ev->params[0] == "add")
+	{
+
+	}
+	else if(ev->params[0] == "del")
+	{
+
+	}
+	else if(ev->params[0] == "list")
+	{
+
+	}
+	else
+	{
+
 	}
 
 	return true;

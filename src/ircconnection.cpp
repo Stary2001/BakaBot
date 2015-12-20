@@ -121,7 +121,7 @@ bool IRCConnection::cb_ctcp(Event *e)
 		std::cout << "got ctcp " << s << std::endl;
 		if(s == "VERSION")
 		{
-			send_notice(ev->sender.nick, "\x01VERSION BakaBot v0.0000000000000001\x01");
+			send_notice(ev->sender->nick, "\x01VERSION BakaBot v0.0000000000000001\x01");
 		}
 		return true;
 	}
@@ -281,15 +281,15 @@ bool IRCConnection::cb_join(Event *e)
 		channels[c] = Channel(c);
 	}
 
-	if(ev->sender.nick == current_nick)
+	if(ev->sender->nick == current_nick)
 	{
 		send_line("WHO " + c + " %cuhnarsf");
 		channels[c].syncing	= true;
 		joined_channels.push_back(c);
 	}
 
-	channels[c].users[ev->sender.nick] = ChannelUser(get_user(ev->sender.nick));
-	send_line("WHO " + ev->sender.nick + " %cuhnarsf");
+	channels[c].users[ev->sender->nick] = ChannelUser(ev->sender);
+	send_line("WHO " + ev->sender->nick + " %cuhnarsf");
 
 	return false;
 }
@@ -305,7 +305,7 @@ bool IRCConnection::cb_part(Event *e)
 		channels[c] = Channel(c);
 	}
 
-	if(ev->sender.nick == current_nick)
+	if(ev->sender->nick == current_nick)
 	{
 		auto it = std::remove(joined_channels.begin(), joined_channels.end(), c);
 		if(it != joined_channels.end())
@@ -316,7 +316,7 @@ bool IRCConnection::cb_part(Event *e)
 	}
 	else
 	{
-		channels[c].users.erase(ev->sender.nick);
+		channels[c].users.erase(ev->sender->nick);
 	}
 
 	return false;
@@ -684,7 +684,7 @@ void IRCConnection::handle_line(std::string line)
 
 	parse_line(line, sender, command, params);
 
-	User u = parse_hostmask(sender);
+	User sender_u = parse_hostmask(sender);
 
 	std::transform(command.begin(), command.end(), command.begin(), tolower);
 
@@ -703,6 +703,13 @@ void IRCConnection::handle_line(std::string line)
 			}
 		}
 	}*/
+
+	User *u = get_user(sender_u.nick);
+	if(!u->synced)
+	{
+		u->ident = sender_u.ident;
+		u->host = sender_u.host;
+	}
 
 	RawIRCEvent *ev = new RawIRCEvent("raw/" + command, u, params);
 	sink->queue_event(ev);

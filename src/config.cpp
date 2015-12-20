@@ -7,21 +7,38 @@
 
 Config::Config(std::string path)
 {
-    std::ifstream config_doc(path, std::ios::binary | std::ios::in );
-    if(config_doc.good())
-    {
-        Json::CharReaderBuilder rbuilder;
-        std::string errs;
-        bool success = Json::parseFromStream(rbuilder, config_doc, &m_root, &errs);
-        if(!success)
-        {
-            throw ConfigException(errs);
-        }
-    }
-    else
-    {
-        throw ConfigException("Couldn't open file '" + path + "'!");
-    }
+    root = new ConfigNode();
+}
+
+ConfigValue::ConfigValue() : type(NodeType::None)
+{}
+
+ConfigValue::ConfigValue(std::string s) : type(NodeType::None), string(s)
+{}
+
+ConfigValue::ConfigValue(int i) : type(NodeType::None), integer(i)
+{}
+
+// todo: apply error checking?
+
+NodeType ConfigNode::type()
+{
+    return v.type;
+}
+
+std::string ConfigNode::as_string()
+{
+    return v.string;
+}
+
+int ConfigNode::as_int()
+{
+    return v.integer;
+}
+
+std::vector<std::string> & ConfigNode::as_list()
+{
+    return v.list;
 }
 
 Config* Config::load(std::string path)
@@ -38,29 +55,26 @@ Config* Config::load(std::string path)
     return NULL;
 }
 
-Json::Value Config::get(std::string path)
+ConfigNode* Config::get(std::string path)
 {
-    Json::Value v = m_root;
+    ConfigNode *v = root;
 
     std::vector<std::string> p = util::split(path, '.');
     for(std::string entry : p)
     {
-        v = v[entry];
+        if(v->children.find(entry) == v->children.end())
+        {
+            v->children[entry] = new ConfigNode();
+        }
+        v = v->children[entry];
     }
     return v;
 }
 
-Json::Value Config::get(std::string path, Json::Value def)
+void Config::set(std::string path, ConfigValue vv)
 {
-    Json::Value v = m_root;
-    std::vector<std::string> p = util::split(path, '.');
-    for(std::string entry : p)
-    {
-        v = v[entry];
-        if(v.isNull())
-            return def;
-    }
-    return v;
+    ConfigNode *v = get(path);
+    v->v = vv;
 }
 
 ConfigException::ConfigException(std::string message)
