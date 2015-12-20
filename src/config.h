@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <map>
+#include <fstream>
 
 class ConfigException : std::exception
 {
@@ -14,7 +15,7 @@ enum class NodeType
 	List,
 	String,
 	Int,
-	None
+	Null
 };
 
 class ConfigValue
@@ -38,8 +39,10 @@ public:
 	int as_int();
 	std::vector<std::string>& as_list();
 
-	std::map<std::string, ConfigNode*> children;
+	std::map<std::string, std::shared_ptr<ConfigNode>> children;
 	ConfigValue v;
+
+	void save(std::string prefix, std::ofstream &f);
 };
 
 class Config
@@ -47,10 +50,12 @@ class Config
 public:
     Config(std::string path);
     static Config* load(std::string path);
-    ConfigNode* get(std::string path);
+    std::shared_ptr<ConfigNode> get(std::string path);
 
     void set(std::string path, ConfigValue vv);
+    void save();
 
 private:
-    ConfigNode *root;
+    std::shared_ptr<ConfigNode> root;
+    std::string filename;
 };

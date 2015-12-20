@@ -1,0 +1,13 @@
+groups.admins=list:[your nick here]
+permissions.group=list:[group/admins]
+permissions.load=list:[group/admins]
+permissions.perm=list:[group/admins]
+permissions.unload=list:[group/admins]
+prefix=str:@
+server.host=str:irc.esper.net
+server.nick=str:BakaBot
+server.nickserv.password=str:no
+server.nickserv.username=str:BakaBot
+server.port=int:6667
+server.realname=str:Powered By Cirno Technology
+server.username=str:baka

@@ -132,7 +132,7 @@ bool Bot::check_permissions(User *u, std::string command)
 		return false;
 	}
 
-	ConfigNode *v = config->get("permissions." + command);
+	std::shared_ptr<ConfigNode> v = config->get("permissions." + command);
 
 	if(v->type() == NodeType::List)
 	{
@@ -146,7 +146,7 @@ bool Bot::check_permissions(User *u, std::string command)
 			else if(b.substr(0, 6) == "group/")
 			{
 				b = b.substr(6);
-				ConfigNode *v2 = config->get("groups." + b);
+				std::shared_ptr<ConfigNode> v2 = config->get("groups." + b);
 				if(v2->type() == NodeType::List)
 				{
 					for(auto c : v2->as_list())

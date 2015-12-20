@@ -59,8 +59,8 @@ bool AdminPlugin::permissions(Event *e)
 
 	if(ev->params[0] == "add")
 	{
-		ConfigNode *v = bot->config->get("permissions." + ev->params[1]);
-		if(v->type() == NodeType::None)
+		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + ev->params[1]);
+		if(v->type() == NodeType::Null)
 		{
 			ConfigValue vv = ConfigValue();
 			vv.type = NodeType::List;
@@ -74,8 +74,8 @@ bool AdminPlugin::permissions(Event *e)
 	}
 	else if(ev->params[0] == "del")
 	{
-		ConfigNode *v = bot->config->get("permissions." + ev->params[1]);
-		if(v->type() == NodeType::None) return true;
+		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + ev->params[1]);
+		if(v->type() == NodeType::Null) return true;
 
 		auto it = std::find(v->as_list().begin(), v->as_list().end(), ev->params[2]);
 		if(it != v->as_list().end())
@@ -85,8 +85,8 @@ bool AdminPlugin::permissions(Event *e)
 	}
 	else if(ev->params[0] == "list")
 	{
-		ConfigNode *v = bot->config->get("permissions." + ev->params[1]);
-		if(v->type() == NodeType::None) return true;
+		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + ev->params[1]);
+		if(v->type() == NodeType::Null) return true;
 		// todo :D
 		
 	}
