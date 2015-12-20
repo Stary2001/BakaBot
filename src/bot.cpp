@@ -153,6 +153,16 @@ bool Bot::check_permissions(User *u, std::string command)
 			else if(b.substr(0, 6) == "group/")
 			{
 				b = b.substr(6);
+
+				if(b == "special/all")
+				{
+					return true;
+				}
+				else if(b == "special/none")
+				{
+					return false;
+				}
+
 				std::shared_ptr<ConfigNode> v2 = config->get("groups." + b);
 				if(v2->type() == NodeType::List)
 				{
