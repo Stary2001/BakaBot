@@ -48,13 +48,20 @@ bool Bot::cb_command(Event *e)
 		std::string name = *(bits.begin());
 		bits.erase(bits.begin());
 
-		if(check_permissions(ev->sender, name))
+		if(handlers.find("command/" + name) != handlers.end())
 		{
-			queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
+			if(check_permissions(ev->sender, name))
+			{
+				queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
+			}
+			else
+			{
+				conn->send_privmsg(ev->target, "No permissions!");
+			}
 		}
 		else
 		{
-			conn->send_privmsg(ev->target, "no permissions!");
+			conn->send_privmsg(ev->target, "No handler for command '" + name + "'!");
 		}
 
 		return true;
