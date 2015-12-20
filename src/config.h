@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include <fstream>
+#include <memory>
 
 class ConfigException : std::exception
 {

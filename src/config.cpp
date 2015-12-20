@@ -1,8 +1,6 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include <msgpack.hpp>
-
 #include "config.h"
 #include "logger.h"
 #include "util.h"

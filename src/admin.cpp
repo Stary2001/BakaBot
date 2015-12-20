@@ -191,4 +191,8 @@ void AdminPlugin::deinit(PluginHost *h)
 {
 	bot->remove_handler("command/load", "admin");
 	bot->remove_handler("command/unload", "admin");
+	bot->remove_handler("command/perm", "admin");
+	bot->remove_handler("command/perms", "admin");
+	bot->remove_handler("command/group", "admin");
+	bot->remove_handler("command/save", "admin");
 }
