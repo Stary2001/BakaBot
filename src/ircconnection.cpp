@@ -740,7 +740,7 @@ std::string IRCConnection::antiping(std::string c, std::string msg)
 		{
 			if(u.first.length() != 1)
 			{
-				msg.replace(a, u.first.length(), u.first.substr(0, 1) + "\xf" + u.first.substr(1));
+				msg.replace(a, u.first.length(), u.first.substr(0, 1) + "\xE2\x80\x8B" + u.first.substr(1)); // unicode zero width space
 			}
 		}
 	}
