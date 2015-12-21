@@ -112,6 +112,8 @@ public:
 
 	std::string current_nick;
 
+	Channel &get_channel(std::string n);
+
 protected:
 	virtual void handle(uint32_t events);
 

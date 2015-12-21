@@ -25,7 +25,7 @@ private:
 	bool cb_invite(Event *e);
 	bool cb_command(Event *e);
 
-	bool check_permissions(User *u, std::string command);
+	bool check_permissions(User *u, Channel &c, std::string command);
 
 	void event_thread_func();
 	std::thread event_thread;

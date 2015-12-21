@@ -748,6 +748,11 @@ std::string IRCConnection::antiping(std::string c, std::string msg)
 	return msg;
 }
 
+Channel& IRCConnection::get_channel(std::string c)
+{
+	return channels[c];
+}
+
 Channel::Channel()
 {}
 

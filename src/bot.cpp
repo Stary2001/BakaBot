@@ -56,7 +56,7 @@ bool Bot::cb_command(Event *e)
 			{
 				conn->send_privmsg(ev->target, "No handler for command '" + name + "'!");
 			}
-			else if(check_permissions(ev->sender, name))
+			else if(check_permissions(ev->sender, conn->get_channel(ev->target), name))
 			{
 				queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
 			}
@@ -138,7 +138,7 @@ void Bot::connect(ConnectionDispatcher *d)
 	}
 }
 
-bool Bot::check_permissions(User *u, std::string command)
+bool Bot::check_permissions(User *u, Channel &c, std::string command)
 {
 	if(!u->synced || u->account == "*")
 	{
@@ -167,6 +167,14 @@ bool Bot::check_permissions(User *u, std::string command)
 				else if(b == "special/none")
 				{
 					return false;
+				}
+				else if(b == "special/ops")
+				{
+					return c.users[u->nick].modes['o'];
+				}
+				else if(b == "special/voice")
+				{
+					return c.users[u->nick].modes['v'];
 				}
 
 				std::shared_ptr<ConfigNode> v2 = config->get("groups." + b);
