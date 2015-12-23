@@ -1,6 +1,7 @@
 #include "bot.h"
 #include "util.h"
 #include "admin.h"
+#include "logger.h"
 #include <iostream>
 
 void Bot::event_thread_func()
@@ -62,7 +63,7 @@ bool Bot::cb_command(Event *e)
 			}
 			else
 			{
-				conn->send_privmsg(ev->target, "No permissions!");
+				conn->send_privmsg(ev->target, "***REMOVED***");
 			}
 		}
 		else
@@ -86,7 +87,12 @@ bool Bot::end_of_motd(Event *e)
 	{
 		conn->send_privmsg("NickServ", "identify " + uname + " " + pass);
 	}
-
+	std::shared_ptr<ConfigNode> v = config->get("channels.join");
+	if (v->type()!=NodeType::Null) {
+		for (auto chan: v->as_list()) {
+			conn->join(chan);
+		}
+	}
 	return false;
 }
 
@@ -102,6 +108,7 @@ bool Bot::cb_invite(Event *e)
 
 void Bot::connect(ConnectionDispatcher *d)
 {
+	Plugin *p;
 	using namespace std::placeholders;
 	std::string server = config->get("server.host")->as_string();
 	short port = config->get("server.port")->as_int();
@@ -109,7 +116,14 @@ void Bot::connect(ConnectionDispatcher *d)
 	conn = new IRCConnection(this, server, port);
 
 	active_plugins["admin"] = new AdminPlugin();
-
+	std::shared_ptr<ConfigNode> v = config->get("modules.load");
+	if (v->type()!=NodeType::Null) {
+		for (auto plugin: v->as_list()) {
+			if (!(p=load_plugin(plugin))) {
+				Logger::instance->log("Could not load plugin "+plugin, LogLevel::ERROR);
+			}
+		}
+	}
 	init_plugins();
 
 	add_handler("irc/message", "bot", std::bind(&Bot::cb_command, this, _1));
