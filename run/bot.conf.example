@@ -1,5 +1,7 @@
 groups.admins=list:[*insert your nick here*]
 permissions.f=list:[group/admins]
+channels.join=list:[your_channels_go_here]
+modules.load=list:[module_paths_here_with_.so]
 permissions.finfo=list:[group/admins]
 permissions.group=list:[group/admins]
 permissions.load=list:[group/admins]
