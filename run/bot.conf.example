@@ -1,8 +1,13 @@
-groups.admins=list:[your nick here]
+groups.admins=list:[*insert your nick here*]
+permissions.f=list:[group/admins]
+permissions.finfo=list:[group/admins]
 permissions.group=list:[group/admins]
 permissions.load=list:[group/admins]
 permissions.perm=list:[group/admins]
+permissions.save=list:[group/admins]
+permissions.setf=list:[group/admins]
 permissions.unload=list:[group/admins]
+permissions.sed=list:[group/admins]
 prefix=str:@
 server.host=str:irc.esper.net
 server.nick=str:BakaBot
