@@ -28,9 +28,7 @@
 *.out
 *.app
 
-BakaBot
-Makefile.deps
-src/botconfig.h
 BakaBot-plugins/
 build/
-bot.conf
+run/BakaBot
+run/bot.conf
