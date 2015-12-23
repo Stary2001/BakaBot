@@ -11,4 +11,5 @@ private:
 	bool permissions(Event *e);
 	bool group(Event *e);
 	bool save(Event *e);
+	bool config(Event *e);
 };

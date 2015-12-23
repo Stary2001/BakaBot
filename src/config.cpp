@@ -70,7 +70,7 @@ std::map<std::string, ConfigValue> & ConfigNode::as_map()
     return v.map;
 }
 
-std::string serialize(ConfigValue &v)
+std::string Config::serialize(ConfigValue &v)
 {
     std::string val;
     if(v.type == NodeType::String)
@@ -95,7 +95,7 @@ std::string serialize(ConfigValue &v)
         val = "map:[";
         for(auto kv : v.map)
         {
-            val += kv.first + "`" + serialize(kv.second) + (kv != *v.map.rbegin() ? "~" : "");
+            val += kv.first + "=" + serialize(kv.second) + (kv != *v.map.rbegin() ? "|" : "");
         }
         val += "]";
     }
@@ -103,7 +103,7 @@ std::string serialize(ConfigValue &v)
     return val;
 }
 
-ConfigValue deserialize(std::string val)
+ConfigValue Config::deserialize(std::string val)
 {
     ConfigValue v;
 
@@ -138,10 +138,10 @@ ConfigValue deserialize(std::string val)
         val = val.substr(1);
         val = val.substr(0, val.length() - 1);
 
-        auto parts = util::split(val, '~');
+        auto parts = util::split(val, '|');
         for(auto kv : parts)
         {
-            auto partss = util::split(kv, '`');
+            auto partss = util::split(kv, '=');
             v.map[partss[0]] = deserialize(partss[1]);
         }
     }
@@ -153,7 +153,7 @@ void ConfigNode::save(std::string prefix, std::ofstream &f)
 {
     if(prefix != "" && v.type != NodeType::Null)
     {
-        std::string s = prefix + "=" + serialize(v) + "\n";
+        std::string s = prefix + "=" + Config::serialize(v) + "\n";
         f.write(s.c_str(), s.size());
     }
 

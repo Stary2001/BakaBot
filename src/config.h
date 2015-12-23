@@ -58,6 +58,9 @@ public:
     void set(std::string path, ConfigValue vv);
     void save();
 
+    static std::string serialize(ConfigValue &v);
+    static ConfigValue deserialize(std::string val);
+
 private:
     std::shared_ptr<ConfigNode> root;
     std::string filename;
