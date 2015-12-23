@@ -41,7 +41,7 @@ bool Bot::cb_command(Event *e)
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
 	std::string prefix = config->get("prefix")->as_string();
 
-	if(ev->message.substr(0, prefix.length()) == prefix)
+	if(ev->message.length() > prefix.length() && ev->message.substr(0, prefix.length()) == prefix)
 	{
 		ev->message = ev->message.substr(prefix.length());
 		std::cout << "got command " << ev->message << std::endl;
