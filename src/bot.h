@@ -8,11 +8,12 @@ class Bot : public PluginHost, public EventSink
 {
 public:
 	Bot();
-	Bot(Config *c);
+	Bot(Config *c, Config *l);
 	void connect(ConnectionDispatcher *d);
 
 	IRCConnection *conn;
 	Config *config;
+    Config *locale;
 private:
 
 	//BotConfig config;
