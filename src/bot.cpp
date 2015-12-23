@@ -63,7 +63,7 @@ bool Bot::cb_command(Event *e)
 			}
 			else
 			{
-				conn->send_privmsg(ev->target, "***REMOVED***");
+				conn->send_privmsg(ev->target, "No permissions!");
 			}
 		}
 		else
