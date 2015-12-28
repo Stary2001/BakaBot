@@ -1,5 +1,6 @@
 #pragma once
 #include "connection.h"
+#include "lineconnection.h"
 #include "user.h"
 #include <vector>
 #include <set>
@@ -95,13 +96,10 @@ public:
 	bool syncing;
 };
 
-#define SCRATCH_LENGTH 1024
-
-class IRCConnection : public Connection
+class IRCConnection : public LineConnection
 {
 public:
 	IRCConnection(EventSink *e, std::string host, unsigned short port);
-	virtual ~IRCConnection();
 	void send_line(std::string line);
 	void send_privmsg(std::string nick, std::string msg);
 	void send_notice(std::string nick, std::string msg);
@@ -115,15 +113,9 @@ public:
 	Channel &get_channel(std::string n);
 
 protected:
-	virtual void handle(uint32_t events);
+	virtual void handle_line(std::string line);
 
 private:
-	bool reading_line;
-	std::string buffer;
-	char *scratch;
-	uint32_t scratch_off;
-	uint32_t scratch_len;
-
 	IRCServerState irc_server;
 
 	EventSink *sink;
@@ -133,7 +125,6 @@ private:
 
 	std::map<std::string, User*> global_users;
 
-	void handle_line(std::string line);
 	void parse_line(std::string line, std::string& sender, std::string& command, std::vector<std::string>& params);
 	User parse_hostmask(std::string hostmask);
 

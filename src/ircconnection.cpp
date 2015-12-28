@@ -449,12 +449,9 @@ bool IRCConnection::cb_end_who(Event *e)
 	return false;
 }
 
-IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port) : Connection(host, port), sink(e)
+IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port) : LineConnection(host, port), sink(e)
 {
 	using namespace std::placeholders;
-	scratch = new char[SCRATCH_LENGTH];
-	scratch_off = 0;
-	scratch_len = 0;
 
 /*	sink->add_handler("raw/001", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
 	sink->add_handler("raw/002", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
@@ -518,12 +515,6 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 	sink->add_handler("raw/invite", "ircconnection", std::bind(&IRCConnection::cb_rewrite_invite, this, _1));
 }
 
-
-IRCConnection::~IRCConnection() 
-{
-	delete[] scratch;
-}
-
 void IRCConnection::send_line(std::string line)
 {
 	line += "\r\n";
@@ -549,63 +540,6 @@ void IRCConnection::nick(std::string nick)
 void IRCConnection::join(std::string chan)
 {
 	send_line("JOIN :" + chan);
-}
-
-void IRCConnection::handle(uint32_t events)
-{
-	if(events & EPOLLRDHUP) // if server disconnected, die. f.
-	{
-		dispatcher->remove(this);
-		delete this;
-		return;
-	}
-
-	if(events & EPOLLIN)
-	{
-		int r = read(scratch + scratch_len, SCRATCH_LENGTH - scratch_len);
-		if(r == 0)
-		{
-			// ??
-			std::cerr << "read returned 0?" << std::endl;
-		}
-		if(r == -1)
-		{
-			std::cerr << errno << std::endl;
-		}
-		scratch_len += r;
-
-		char *line_end = NULL;
-		bool found = false;
-		int len = 0;
-		char *last_line_end = NULL;
-
-		while(true)
-		{
-			last_line_end = line_end;
-			line_end = (char*)memmem(scratch + scratch_off, SCRATCH_LENGTH - scratch_off, "\r\n", 2);
-			if(line_end == NULL)
-			{
-				if(found)
-				{
-					len = scratch_len - (last_line_end+2 - scratch);
-					memmove(scratch, last_line_end + 2, len);
-					memset(scratch + len, 0, SCRATCH_LENGTH - len);
-					scratch_off = 0;
-					scratch_len = len;
-				}
-				break;
-			}
-
-			found = true;
-			len = (line_end - scratch) - scratch_off;
-			std::string line(scratch + scratch_off, len);
-			handle_line(line);
-
-			len += 2;
-			scratch_off += len;
-		}
-		
-	}
 }
 
 // here be dragons
