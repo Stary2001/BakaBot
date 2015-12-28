@@ -1,3 +1,4 @@
+locale.language=str:en_GB
 groups.admins=list:[*insert your nick here*]
 permissions.f=list:[group/admins]
 channels.join=list:[your_channels_go_here]

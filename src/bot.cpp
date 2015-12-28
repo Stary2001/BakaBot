@@ -12,10 +12,10 @@ void Bot::event_thread_func()
 	}
 }
 
-Bot::Bot() : conn(NULL), config(NULL), event_thread(std::bind(&Bot::event_thread_func, this))
+Bot::Bot() : conn(NULL), config(NULL), locale(NULL), event_thread(std::bind(&Bot::event_thread_func, this))
 {}
 
-Bot::Bot(Config *c) : conn(NULL), config(c), event_thread(std::bind(&Bot::event_thread_func, this))
+Bot::Bot(Config *c, Config *l) : conn(NULL), config(c), locale(l), event_thread(std::bind(&Bot::event_thread_func, this))
 {}
 
 void Bot::init_plugins()
@@ -55,7 +55,7 @@ bool Bot::cb_command(Event *e)
 		{
 			if(it->second.size() == 0)
 			{
-				conn->send_privmsg(ev->target, "No handler for command '" + name + "'!");
+				conn->send_privmsg(ev->target, locale->get("commands.nohandler")->as_string() + " '" + name + "'!");
 			}
 			else if(check_permissions(ev->sender, conn->get_channel(ev->target), name))
 			{
@@ -63,12 +63,12 @@ bool Bot::cb_command(Event *e)
 			}
 			else
 			{
-				conn->send_privmsg(ev->target, "No permissions!");
+				conn->send_privmsg(ev->target, locale->get("commands.nopermission")->as_string());
 			}
 		}
 		else
 		{
-			conn->send_privmsg(ev->target, "No handler for command '" + name + "'!");
+			conn->send_privmsg(ev->target, locale->get("commands.nohandler")->as_string() + " '" + name + "'!");
 		}
 
 		return true;
@@ -120,7 +120,7 @@ void Bot::connect(ConnectionDispatcher *d)
 	if (v->type()!=NodeType::Null) {
 		for (auto plugin: v->as_list()) {
 			if (!(p=load_plugin(plugin))) {
-				Logger::instance->log("Could not load plugin "+plugin, LogLevel::ERROR);
+				Logger::instance->log(locale->get("plugins.noload")->as_string()+plugin, LogLevel::ERROR);
 			}
 		}
 	}
