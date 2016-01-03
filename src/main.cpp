@@ -1,9 +1,13 @@
+#include <curl/curl.h>
 #include "bot.h"
 #include "logger.h"
 #include "config.h"
 
+
 int main(int argc, char** argv)
 {
+	curl_global_init(CURL_GLOBAL_ALL);
+
 	Logger::instance = new StderrLogger();
 	ConnectionDispatcher d;
 
@@ -16,6 +20,8 @@ int main(int argc, char** argv)
 	{
 		d.handle();
 	}
+
+	curl_global_cleanup();
 
 	return 0;
 }

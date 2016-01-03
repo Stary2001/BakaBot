@@ -107,7 +107,7 @@ ConfigValue Config::deserialize(std::string val)
 {
     ConfigValue v;
 
-    int c = val.find(":");
+    size_t c = val.find(":");
     if(c == std::string::npos)
     {
         return v;

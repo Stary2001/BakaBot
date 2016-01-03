@@ -306,4 +306,6 @@ bool AdminPlugin::config(Event *e)
 		bot->conn->send_privmsg(ev->target, usage);
 		return true;
 	}
+
+	return true;
 }

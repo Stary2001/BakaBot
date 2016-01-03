@@ -669,7 +669,7 @@ std::string IRCConnection::antiping(std::string c, std::string msg)
 	Channel &ch = channels[c];
 	for(auto u : ch.users)
 	{
-		int a = msg.find(u.first);
+		size_t a = msg.find(u.first);
 		if(a != std::string::npos)
 		{
 			if(u.first.length() != 1)
