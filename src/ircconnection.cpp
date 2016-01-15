@@ -1,4 +1,3 @@
-#include <sys/epoll.h>
 #include "ircconnection.h"
 #include <cstring>
 #include <iostream>

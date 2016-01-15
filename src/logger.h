@@ -6,7 +6,7 @@
 enum class LogLevel
 {
     FATAL,
-    ERROR,
+    ERR,
     WARNING,
     INFO,
     DEBUG

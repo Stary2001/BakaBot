@@ -111,16 +111,20 @@ void Bot::connect(ConnectionDispatcher *d)
 	Plugin *p;
 	using namespace std::placeholders;
 	std::string server = config->get("server.host")->as_string();
-	short port = config->get("server.port")->as_int();
+	short port = (short)config->get("server.port")->as_int();
 
 	conn = new IRCConnection(this, server, port);
 
 	active_plugins["admin"] = new AdminPlugin();
 	std::shared_ptr<ConfigNode> v = config->get("modules.load");
-	if (v->type()!=NodeType::Null) {
-		for (auto plugin: v->as_list()) {
-			if (!(p=load_plugin(plugin))) {
-				Logger::instance->log(locale->get("plugins.noload")->as_string()+plugin, LogLevel::ERROR);
+	if (v->type()!=NodeType::Null) 
+	{
+		for (auto plugin: v->as_list()) 
+		{
+			p = load_plugin(plugin);
+			if (p == NULL) 
+			{
+				Logger::instance->log(locale->get("plugins.noload")->as_string()+plugin, LogLevel::ERR);
 			}
 		}
 	}

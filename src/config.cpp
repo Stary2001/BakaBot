@@ -13,7 +13,7 @@ Config::Config(std::string path)
 {
     root = std::shared_ptr<ConfigNode>(new ConfigNode());
 
-    std::ifstream config_file(path, std::ios::binary | std::ios::in);
+    std::ifstream config_file(path, std::ios::in);
     if(config_file.good())
     {
         std::string s;
@@ -172,7 +172,7 @@ Config* Config::load(std::string path)
     }
     catch(ConfigException e)
     {
-        Logger::instance->log(e.m_message, LogLevel::ERROR);
+        Logger::instance->log(e.m_message, LogLevel::ERR);
     }
     return NULL;
 }

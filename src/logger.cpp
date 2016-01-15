@@ -3,7 +3,7 @@
 
 std::string Logger::level_to_string(LogLevel l)
 {
-    static std::map<LogLevel, std::string> levels = { {LogLevel::FATAL, "FATAL"}, {LogLevel::ERROR, "ERROR"}, {LogLevel::WARNING, "WARNING"}, {LogLevel::INFO, "INFO"}, {LogLevel::DEBUG, "DEBUG"} };
+    static std::map<LogLevel, std::string> levels = { {LogLevel::FATAL, "FATAL"}, {LogLevel::ERR, "ERROR"}, {LogLevel::WARNING, "WARNING"}, {LogLevel::INFO, "INFO"}, {LogLevel::DEBUG, "DEBUG"} };
     return levels[l];
 }
 

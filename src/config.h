@@ -4,7 +4,7 @@
 #include <fstream>
 #include <memory>
 
-class ConfigException : std::exception
+class ConfigException : public std::exception
 {
 public:
     ConfigException(std::string message);

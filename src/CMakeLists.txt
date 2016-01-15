@@ -14,8 +14,8 @@ endif()
 
 file(GLOB_RECURSE SOURCES "*.cpp")
 
-find_path(SOCK libsock.a HINTS ../../corelibs/libsock NO_DEFAULT_PATH)
-find_path(PLUGIN libplugin.a HINTS ../../corelibs/libplugin NO_DEFAULT_PATH)
+find_path(SOCK NAMES libsock.a sock.lib HINTS ../../corelibs/libsock NO_DEFAULT_PATH)
+find_path(PLUGIN NAMES libplugin.a plugin.lib HINTS ../../corelibs/libplugin NO_DEFAULT_PATH)
 find_package(Jsoncpp REQUIRED)
 find_package(CURL REQUIRED)
 
@@ -24,18 +24,23 @@ if(${SOCK} STREQUAL "SOCK-NOTFOUND")
 endif()
 
 if(${PLUGIN} STREQUAL "PLUGIN-NOTFOUND")
-  message(FATAL_ERROR "libplugin not found")
+    message(FATAL_ERROR "libplugin not found")
 endif()
 
 include_directories(
     .
-	./event
+    ./event
     ${SOCK}/include
     ${PLUGIN}/include
+    ${Jsoncpp_INCLUDE_DIRS}
+    ${CURL_INCLUDE_DIRS}
 )
 
-
 add_executable(BakaBot ${SOURCES})
-target_link_libraries(BakaBot ${PLUGIN}/libplugin.a ${SOCK}/libsock.a pthread dl ${Jsoncpp_LIBRARIES} ${CURL_LIBRARIES})
+if(UNIX)
+  target_link_libraries(BakaBot ${PLUGIN}/libplugin.a ${SOCK}/libsock.a pthread dl ${Jsoncpp_LIBRARY} ${CURL_LIBRARY})
+elseif(WIN32)
+  target_link_libraries(BakaBot ws2_32.lib ${PLUGIN}/plugin.lib ${SOCK}/sock.lib ${Jsoncpp_LIBRARY} ${CURL_LIBRARY})
+endif()
 
 install(TARGETS BakaBot RUNTIME DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../run)
