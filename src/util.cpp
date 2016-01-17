@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "util.h"
+#include "export.h"
 
 namespace util
 {
@@ -19,7 +20,7 @@ namespace util
     	return elems;
 	}
 
-	std::vector<std::string> split(const std::string &s, char delim)
+	PLUGINEXPORT std::vector<std::string> split(const std::string &s, char delim)
 	{
 		std::vector<std::string> elems;
 		split(s, delim, elems);
@@ -53,7 +54,7 @@ namespace util
 	    }
 	}
 
-	std::string http_request(std::string url, std::map<std::string, std::string> params)
+	PLUGINEXPORT std::string http_request(std::string url, std::map<std::string, std::string> params)
 	{
 		CURL *easy = curl_easy_init();
 	    bool first = false;
@@ -75,7 +76,7 @@ namespace util
 	    return http_request(url, easy);
 	}
 
-	std::string http_request(std::string url)
+	PLUGINEXPORT std::string http_request(std::string url)
 	{
 		return http_request(url, curl_easy_init());
 	}

@@ -3,8 +3,9 @@
 #include <map>
 #include <fstream>
 #include <memory>
+#include "export.h"
 
-class ConfigException : public std::exception
+PLUGINCLASS ConfigException : public std::exception
 {
 public:
     ConfigException(std::string message);
@@ -20,7 +21,7 @@ enum class NodeType
 	Null
 };
 
-class ConfigValue
+PLUGINCLASS ConfigValue
 {
 public:
 	ConfigValue();
@@ -33,7 +34,7 @@ public:
 	std::map<std::string, ConfigValue> map;
 };
 
-class ConfigNode
+PLUGINCLASS ConfigNode
 {
 public:
 	NodeType type();
@@ -48,7 +49,7 @@ public:
 	void save(std::string prefix, std::ofstream &f);
 };
 
-class Config
+PLUGINCLASS Config
 {
 public:
     Config(std::string path);

@@ -2,6 +2,7 @@
 #include "connection.h"
 #include "lineconnection.h"
 #include "user.h"
+#include "export.h"
 #include <vector>
 #include <set>
 
@@ -80,7 +81,7 @@ public:
 	std::map<char, bool> modes;
 };
 
-class Channel
+PLUGINCLASS Channel
 {
 public:
 	Channel();
@@ -96,7 +97,7 @@ public:
 	bool syncing;
 };
 
-class IRCConnection : public LineConnection
+PLUGINCLASS IRCConnection : public LineConnection
 {
 public:
 	IRCConnection(EventSink *e, std::string host, unsigned short port);

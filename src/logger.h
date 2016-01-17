@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include "export.h"
 
 enum class LogLevel
 {
@@ -12,7 +13,7 @@ enum class LogLevel
     DEBUG
 };
 
-class Logger
+PLUGINCLASS Logger
 {
 public:
     virtual void log(std::string message, LogLevel level) = 0;

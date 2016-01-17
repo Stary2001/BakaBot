@@ -1,5 +1,6 @@
 #pragma once
 #include "ircconnection.h"
+#include "export.h"
 #include <vector>
 #include <map>
 #include <functional>
@@ -16,7 +17,7 @@ public:
 
 typedef std::function<bool(Event*)> EventHandler;
 
-class EventSink
+PLUGINCLASS EventSink
 {
 public:
 	EventSink();

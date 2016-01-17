@@ -44,3 +44,7 @@ elseif(WIN32)
 endif()
 
 install(TARGETS BakaBot RUNTIME DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../run)
+
+if(WIN32)
+	install(FILES ${CMAKE_BINARY_DIR}/src/\${BUILD_TYPE}/bakabot.lib DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
+endif()
