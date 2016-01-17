@@ -161,7 +161,7 @@ private:
 	bool cb_cap(Event *e);
 	bool cb_cap_done(Event *e);
 
-	void IRCConnection::end_cap();
+	void end_cap();
 
 	User* get_user(std::string name);
 };
