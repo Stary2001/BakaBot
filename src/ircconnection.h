@@ -15,6 +15,7 @@ class Event;
 enum IRCState
 {
 	CONNECTED,
+	CAP,
 	PASS,
 	NICK,
 	NICK_TAKEN,
@@ -26,6 +27,10 @@ struct IRCServerState
 {
 	std::string name;
 	std::string version;
+
+	bool supports_cap;
+	std::set<std::string> caps;
+	std::set<std::string> enabled_caps;
 
 	bool supports_map;
 	int awaylen;
@@ -112,6 +117,8 @@ public:
 	std::string current_nick;
 
 	Channel &get_channel(std::string n);
+	void do_cap(std::vector<std::string> &caps);
+	bool has_cap(std::string name);
 
 protected:
 	virtual void handle_line(std::string line);
@@ -149,6 +156,12 @@ private:
 	bool cb_topic_change_time(Event *e);
 	bool cb_who(Event *e);
 	bool cb_end_who(Event *e);
+	
+	bool cb_unk_command(Event *e);
+	bool cb_cap(Event *e);
+	bool cb_cap_done(Event *e);
+
+	void IRCConnection::end_cap();
 
 	User* get_user(std::string name);
 };

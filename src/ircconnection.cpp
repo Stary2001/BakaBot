@@ -448,6 +448,93 @@ bool IRCConnection::cb_end_who(Event *e)
 	return false;
 }
 
+void IRCConnection::do_cap(std::vector<std::string> &caps)
+{
+	using namespace std::placeholders;
+
+	sink->add_handler("raw/421", "ircconnection", std::bind(&IRCConnection::cb_unk_command, this, _1));
+	sink->add_handler("raw/cap", "ircconnection", std::bind(&IRCConnection::cb_cap, this, _1));
+	sink->add_handler("irc/cap_done", "ircconnection", std::bind(&IRCConnection::cb_cap_done, this, _1));
+
+	std::string caps_s;
+	for(auto s: caps)
+	{
+		caps_s += s + " ";
+	}
+	caps_s = caps_s.substr(0, caps_s.length() - 1);
+
+	send_line("CAP LS");
+	if(caps.size() != 0) send_line("CAP REQ " + caps_s);
+}
+
+bool IRCConnection::cb_unk_command(Event *e)
+{
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+	if (ev->params[0] == "CAP")
+	{
+		irc_server.supports_cap = false;
+		end_cap();
+	}
+
+	return false;
+}
+
+bool IRCConnection::cb_cap(Event *e)
+{
+	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+	irc_server.supports_cap = true;
+	if (ev->params[1] == "ACK")
+	{
+		auto v = util::split(ev->params[2], ' ');
+		for (auto s : v)
+		{
+			irc_server.enabled_caps.insert(s);
+		}
+
+		if (has_cap("sasl"))
+		{
+			sink->queue_event(new Event("irc/sasl"));
+		}
+		else
+		{
+			end_cap();
+		}
+
+	}
+	else if (ev->params[1] == "LS")
+	{
+		auto v = util::split(ev->params[2], ' ');
+		for (auto s : v)
+		{
+			irc_server.caps.insert(s);
+		}
+	}
+	else if (ev->params[1] == "NAK")
+	{
+		end_cap();
+	}
+
+	return false;
+}
+
+bool IRCConnection::cb_cap_done(Event *e)
+{
+	sink->remove_handler("raw/cap", "ircconnection");
+	sink->remove_handler("raw/421", "ircconnection");
+	return false;
+}
+
+void IRCConnection::end_cap()
+{
+	if (irc_server.supports_cap) send_line("CAP END");
+	sink->queue_event(new Event("irc/cap_done"));
+}
+
+bool IRCConnection::has_cap(std::string name)
+{
+	return irc_server.enabled_caps.find(name) != irc_server.enabled_caps.end();
+}
+
 IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port) : LineConnection(host, port), sink(e)
 {
 	using namespace std::placeholders;

@@ -23,11 +23,18 @@ private:
 
 	bool print(Event *e);
 	bool end_of_motd(Event *e);
+	bool cb_cap_done(Event *e);
+	bool cb_sasl(Event *e);
 	bool cb_invite(Event *e);
 	bool cb_command(Event *e);
+
+	void end_sasl();
+	bool cb_sasl_done(Event *e);
 
 	bool check_permissions(User *u, Channel &c, std::string command);
 
 	void event_thread_func();
 	std::thread event_thread;
+
+	bool nickserv_done;
 };

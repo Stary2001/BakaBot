@@ -68,7 +68,7 @@ void EventSink::handle_event()
 
 	if(e == NULL) { return; }
 
-	if(handlers.find(e->type) != handlers.end())
+	if(handlers.find(e->type) != handlers.end() && handlers[e->type].size() != 0)
 	{
 		for(std::pair<std::string, EventHandler> kv : handlers[e->type])
 		{
@@ -91,6 +91,9 @@ RawIRCEvent::RawIRCEvent(std::string n, User *u, std::vector<std::string> p): IR
 {}
 
 IRCConnectedEvent::IRCConnectedEvent(User *s) : IRCEvent("irc/connected", s)
+{}
+
+IRCRegisteredEvent::IRCRegisteredEvent() : Event("irc/registered")
 {}
 
 IRCInviteEvent::IRCInviteEvent(User *s, std::string t, std::string c) : IRCEvent("irc/invite", s), target(t), channel(c)

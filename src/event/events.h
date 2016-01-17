@@ -78,3 +78,9 @@ public:
 	std::string target;
 	std::vector<std::string> params;
 };
+
+class IRCRegisteredEvent : public Event
+{
+public:
+	IRCRegisteredEvent();
+};
