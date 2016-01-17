@@ -41,6 +41,12 @@ bool AdminPlugin::load(Event *e)
 	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
 	Plugin *p = NULL;
 
+	if (ev->params.size() == 0)
+	{
+		bot->conn->send_privmsg(ev->target, "Usage: load [plugin path]");
+		return true;
+	}
+
 	if((p = bot->load_plugin(ev->params[0])))
 	{
 		p->init(bot);
