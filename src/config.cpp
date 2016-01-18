@@ -45,6 +45,8 @@ Config::Config(std::string path)
         throw ConfigException("Couldn't open file '" + path + "'!");
     }
 
+	config_file.close();
+
     filename = path;
 
 	do_migrations(this);
@@ -223,10 +225,10 @@ void Config::save()
         root->save("", config_file);
         config_file.close();
     }
-    else
-    {
-        throw ConfigException("Couldn't open file '" + filename + "'!");
-    }
+	else
+	{
+		throw ConfigException("Couldn't open file '" + filename + "'!");
+	}
 }
 
 ConfigException::ConfigException(std::string message)

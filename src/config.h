@@ -61,10 +61,10 @@ public:
 
     static std::string serialize(ConfigValue &v);
     static ConfigValue deserialize(std::string val);
-
+	
+	std::string filename;
 private:
     std::shared_ptr<ConfigNode> root;
-    std::string filename;
 };
 
 

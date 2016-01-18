@@ -4,6 +4,21 @@
 #include <map>
 #include <sstream>
 
+#include <stdio.h>
+#include "tinydir.h"
+
+#ifdef WIN32
+#include <direct.h>
+#define real_mkdir _mkdir
+#define stat _stat
+#define S_ISDIR(m) ((m & _S_IFDIR) != 0)
+
+#else
+#define real_mkdir mkdir
+#endif
+
+#include <sys/stat.h>
+
 #include "util.h"
 #include "export.h"
 
@@ -176,5 +191,74 @@ namespace util
 		}
 
 		return ret;
+	}
+
+	namespace fs
+	{
+		bool is_directory(std::string name)
+		{
+			struct stat s;
+			if (stat(name.c_str(), &s) != -1)
+			{
+				return S_ISDIR(s.st_mode);
+			}
+			else
+			{
+				errno = 0;
+				return false;
+			}
+		}
+
+		bool exists(std::string name)
+		{
+			struct stat s;
+			if (stat(name.c_str(), &s) != -1)
+			{
+				return true;
+			}
+			else
+			{
+				errno = 0;
+				return false;
+			}
+		}
+
+		void mkdir(std::string name)
+		{
+			real_mkdir(name.c_str());
+		}
+
+		void remove(std::string name)
+		{
+			std::remove(name.c_str());
+		}
+
+		void rename(std::string oldname, std::string newname)
+		{
+			std::rename(oldname.c_str(), newname.c_str());
+		}
+
+		std::vector<std::string> listdir(std::string name)
+		{
+			std::vector<std::string> v;
+			if (!exists(name)) return v;
+
+			tinydir_dir dir;
+			int i;
+			tinydir_open_sorted(&dir, name.c_str());
+
+			for (i = 0; i < dir.n_files; i++)
+			{
+				tinydir_file file;
+				tinydir_readfile_n(&dir, &file, i);
+				if (!(file.name[0] == '.' && (file.name[1] == '\0' || file.name[1] == '.')))
+				{
+					v.push_back(file.name);
+				}
+			}
+			tinydir_close(&dir);
+
+			return v;
+		}
 	}
 }
