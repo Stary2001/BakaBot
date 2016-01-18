@@ -4,6 +4,7 @@
 #include "util.h"
 #include "events.h"
 #include <algorithm> // for tolower
+#include <iterator>
 
 bool cb_null(Event *e)
 {
