@@ -14,7 +14,7 @@
 #define S_ISDIR(m) ((m & _S_IFDIR) != 0)
 
 #else
-#define real_mkdir ::mkdir
+#define real_mkdir(n) ::mkdir(n, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 #endif
 
 #include <sys/stat.h>
