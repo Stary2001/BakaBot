@@ -14,7 +14,7 @@
 #define S_ISDIR(m) ((m & _S_IFDIR) != 0)
 
 #else
-#define real_mkdir mkdir
+#define real_mkdir ::mkdir
 #endif
 
 #include <sys/stat.h>
