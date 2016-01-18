@@ -39,39 +39,49 @@ bool Bot::print(Event *e)
 bool Bot::cb_command(Event *e)
 {
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
-	std::string prefix = config->get("prefix")->as_string();
 
-	if(ev->message.length() > prefix.length() && ev->message.substr(0, prefix.length()) == prefix)
+	std::vector<std::string> prefixes = config->get("prefixes")->as_list();
+
+	auto v = config->get("prefixes." + ev->target);
+	if (v->type() != NodeType::Null)
 	{
-		ev->message = ev->message.substr(prefix.length());
-		std::cout << "got command " << ev->message << std::endl;
-		auto bits = util::split(ev->message, ' ');
-		std::string name = *(bits.begin());
-		bits.erase(bits.begin());
+		prefixes = v->as_list();
+	}
 
-		auto it = handlers.end();
-
-		if((it=handlers.find("command/" + name)) != handlers.end())
+	for (auto prefix : prefixes)
+	{
+		if (ev->message.length() > prefix.length() && ev->message.substr(0, prefix.length()) == prefix)
 		{
-			if(it->second.size() == 0)
+			ev->message = ev->message.substr(prefix.length());
+			std::cout << "got command " << ev->message << std::endl;
+			auto bits = util::split(ev->message, ' ');
+			std::string name = *(bits.begin());
+			bits.erase(bits.begin());
+
+			auto it = handlers.end();
+
+			if ((it = handlers.find("command/" + name)) != handlers.end())
 			{
-				conn->send_privmsg(ev->target, locale->get("commands.nohandler")->as_string() + " '" + name + "'!");
-			}
-			else if(check_permissions(ev->sender, conn->get_channel(ev->target), name))
-			{
-				queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
+				if (it->second.size() == 0)
+				{
+					conn->send_privmsg(ev->target, locale->get("commands.nohandler")->as_string() + " '" + name + "'!");
+				}
+				else if (check_permissions(ev->sender, conn->get_channel(ev->target), name))
+				{
+					queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
+				}
+				else
+				{
+					conn->send_privmsg(ev->target, locale->get("commands.nopermission")->as_string());
+				}
 			}
 			else
 			{
-				conn->send_privmsg(ev->target, locale->get("commands.nopermission")->as_string());
+				conn->send_privmsg(ev->target, locale->get("commands.nohandler")->as_string() + " '" + name + "'!");
 			}
-		}
-		else
-		{
-			conn->send_privmsg(ev->target, locale->get("commands.nohandler")->as_string() + " '" + name + "'!");
-		}
 
-		return true;
+			return true;
+		}
 	}
 
 	return false;

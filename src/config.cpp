@@ -8,6 +8,20 @@
 
 ConfigValue deserialize(std::string val);
 
+void do_migrations(Config *c)
+{
+	if (c->get("prefix")->type() == NodeType::String) // prefix:string -> prefixes:list
+	{
+		ConfigValue v;
+		v.type = NodeType::List;
+		v.list.push_back(c->get("prefix")->as_string());
+		c->set("prefixes", v);
+		c->set("prefix", ConfigValue());
+	}
+
+	c->save();
+}
+
 // todo: abuse the everloving shit out of msgpack
 Config::Config(std::string path)
 {
@@ -32,6 +46,8 @@ Config::Config(std::string path)
     }
 
     filename = path;
+
+	do_migrations(this);
 }
 
 ConfigValue::ConfigValue() : type(NodeType::Null), integer(0)
