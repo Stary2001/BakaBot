@@ -3,6 +3,7 @@
 #include <iostream>
 #include "util.h"
 #include "events.h"
+#include "logger.h"
 #include <algorithm> // for tolower
 #include <iterator>
 
@@ -26,6 +27,8 @@ bool IRCConnection::cb_isupport(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 
+	irc_server.supports_ns_status = true;
+
 	std::vector<std::string>::iterator it = ev->params.begin() + 1;
 	for(; it != (ev->params.end()-1) ; ++it)
 	{
@@ -37,6 +40,11 @@ bool IRCConnection::cb_isupport(Event *e)
 			irc_server.supports_map = true;
 			continue;
 		}
+		if (k == "WHOX")
+		{
+			irc_server.supports_whox = true;
+		}
+
 		std::string v = s.substr(pos+1, s.length() - pos - 1);
 
 		if(k == "PREFIX")
@@ -145,10 +153,10 @@ bool IRCConnection::cb_rewrite_invite(Event *e)
 	return true;
 }
 
-bool IRCConnection::cb_rewrite_privmsg(Event *e)
+bool IRCConnection::cb_rewrite_message(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
-	sink->queue_event(new IRCMessageEvent(ev->sender, ev->params[0], ev->params[1]));
+	sink->queue_event(new IRCMessageEvent("irc/" + e->type.substr(4), ev->sender, ev->params[0], ev->params[1]));
 	return true;
 }
 
@@ -283,13 +291,27 @@ bool IRCConnection::cb_join(Event *e)
 
 	if(ev->sender->nick == current_nick)
 	{
-		send_line("WHO " + c + " %cuhnarsf");
+		if (irc_server.supports_whox)
+		{
+			send_line("WHO " + c + " %cuhnarsf");
+		}
+		else
+		{
+			send_line("WHO " + c);
+		}
 		channels[c].syncing	= true;
 		joined_channels.push_back(c);
 	}
 
 	channels[c].users[ev->sender->nick] = ChannelUser(ev->sender);
-	send_line("WHO " + ev->sender->nick + " %cuhnarsf");
+	if (irc_server.supports_whox)
+	{
+		send_line("WHO " + ev->sender->nick + " %cuhnarsf");
+	}
+	else
+	{
+		send_line("WHO " + c);
+	}
 
 	return false;
 }
@@ -384,6 +406,19 @@ bool IRCConnection::cb_topic_change_time(Event *e)
 	return false;
 }
 
+void IRCConnection::sync_nickserv(User *u)
+{
+	if (irc_server.supports_ns_status)
+	{
+		send_privmsg("NickServ", "status " + u->nick);
+	}
+	else
+	{
+		Logger::instance->log("Can't sync nickserv!", LogLevel::ERR);
+		// whois?
+	}
+}
+
 bool IRCConnection::cb_who(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
@@ -396,8 +431,26 @@ bool IRCConnection::cb_who(Event *e)
 		u->ident = ev->params[2];
 		u->host = ev->params[3];
 		u->server = ev->params[4];
-		u->account = ev->params[7];
-		u->realname = ev->params[8];
+		
+		if (e->type == "raw/354") // whox
+		{
+			u->account = ev->params[7];
+			u->realname = ev->params[8];
+			u->account_synced = true;
+		}
+		else
+		{
+			u->realname = ev->params[7];
+			int i = u->realname.find(' ');
+			if (i != std::string::npos)
+			{
+				u->realname = u->realname.substr(i + 1);
+			}
+
+			// gotta sync nickserv. Fun.
+			sync_nickserv(u);
+		}
+
 		u->synced = true;
 	}
 
@@ -425,6 +478,36 @@ bool IRCConnection::cb_who(Event *e)
 				}
 			}
 		}
+	}
+
+	return true;
+}
+
+bool IRCConnection::cb_ns_notice(Event *e)
+{
+	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
+	
+	if (ev->sender->nick == "NickServ")
+	{
+		if (ev->message.find("Unknown command") != std::string::npos || ev->message.find("Invalid command") != std::string::npos)
+		{
+			irc_server.supports_ns_status = false;
+		}
+		else if (irc_server.supports_ns_status && ev->message.substr(0, 6) == "STATUS")
+		{
+			auto v = util::split(ev->message, ' ');
+			User *u = get_user(v[1]);
+			if (v[2] == "3")
+			{
+				u->account_synced = true;
+				u->account = u->nick; // hack, but best we can do really.. thanks anope..
+			}
+		}
+		else
+		{
+			Logger::instance->log("Unknown message '" + ev->message + "' from NickServ!", LogLevel::ERR);
+		}
+		return true;
 	}
 
 	return false;
@@ -460,12 +543,17 @@ void IRCConnection::do_cap(std::vector<std::string> &caps)
 	std::string caps_s;
 	for(auto s: caps)
 	{
+		irc_server.requested_caps.insert(s);
 		caps_s += s + " ";
 	}
 	caps_s = caps_s.substr(0, caps_s.length() - 1);
 
 	send_line("CAP LS");
-	if(caps.size() != 0) send_line("CAP REQ " + caps_s);
+
+	if (caps.size() != 0)
+	{
+		send_line("CAP REQ " + caps_s);
+	}
 }
 
 bool IRCConnection::cb_unk_command(Event *e)
@@ -484,6 +572,7 @@ bool IRCConnection::cb_cap(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
 	irc_server.supports_cap = true;
+
 	if (ev->params[1] == "ACK")
 	{
 		auto v = util::split(ev->params[2], ' ');
@@ -508,6 +597,11 @@ bool IRCConnection::cb_cap(Event *e)
 		for (auto s : v)
 		{
 			irc_server.caps.insert(s);
+		}
+
+		if (irc_server.requested_caps.size() == 0)
+		{
+			end_cap();
 		}
 	}
 	else if (ev->params[1] == "NAK")
@@ -575,9 +669,13 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 	sink->add_handler("raw/372", "ircconnection", cb_null);
 	sink->add_handler("raw/375", "ircconnection", cb_null);
 	sink->add_handler("raw/376", "ircconnection", std::bind(&IRCConnection::cb_end_of_motd, this, _1));
+	sink->add_handler("raw/422", "ircconnection", std::bind(&IRCConnection::cb_end_of_motd, this, _1)); // err_no_motd
 
 	sink->add_handler("irc/message", "ircconnection", std::bind(&IRCConnection::cb_ctcp, this, _1));
-	sink->add_handler("raw/privmsg", "ircconnection", std::bind(&IRCConnection::cb_rewrite_privmsg, this, _1));
+	sink->add_handler("irc/notice", "ircconnection", std::bind(&IRCConnection::cb_ns_notice, this, _1));
+
+	sink->add_handler("raw/privmsg", "ircconnection", std::bind(&IRCConnection::cb_rewrite_message, this, _1));
+	sink->add_handler("raw/notice", "ircconnection", std::bind(&IRCConnection::cb_rewrite_message, this, _1));
 	sink->add_handler("raw/ping", "ircconnection", std::bind(&IRCConnection::cb_ping, this, _1));
 
 	//sync callbacks
@@ -598,7 +696,7 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 	sink->add_handler("raw/354", "ircconnection", std::bind(&IRCConnection::cb_who, this, _1));
 	sink->add_handler("raw/315", "ircconnection", std::bind(&IRCConnection::cb_end_who, this, _1));
 
-	sink->add_handler("raw/notice", "ircconnection", cb_null);
+	
 	sink->add_handler("raw/invite", "ircconnection", std::bind(&IRCConnection::cb_rewrite_invite, this, _1));
 }
 

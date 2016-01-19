@@ -233,7 +233,7 @@ void Bot::connect(ConnectionDispatcher *d)
 	}
 	init_plugins();
 
-	add_handler("irc/message", "bot", std::bind(&Bot::cb_command, this, _1));
+	add_handler("irc/privmsg", "bot", std::bind(&Bot::cb_command, this, _1));
 	add_handler("irc/invite", "bot", std::bind(&Bot::cb_invite, this, _1));
 	add_handler("irc/connected", "bot", std::bind(&Bot::end_of_motd, this, _1));
 

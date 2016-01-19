@@ -9,4 +9,5 @@ struct User
 	std::string realname;
 	
 	bool synced;
+	bool account_synced;
 };

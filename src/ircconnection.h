@@ -31,6 +31,7 @@ struct IRCServerState
 	bool supports_cap;
 	std::set<std::string> caps;
 	std::set<std::string> enabled_caps;
+	std::set<std::string> requested_caps;
 
 	bool supports_map;
 	int awaylen;
@@ -53,6 +54,9 @@ struct IRCServerState
 
 	std::map<char, char> prefixes;
 	std::map<char, char> prefix_modes;
+
+	bool supports_whox;
+	bool supports_ns_status;
 };
 
 enum ModeType
@@ -143,7 +147,7 @@ private:
 	bool cb_ctcp(Event *e);
 	bool cb_ping(Event *e);
 	bool cb_end_of_motd(Event *e);
-	bool cb_rewrite_privmsg(Event *e);
+	bool cb_rewrite_message(Event *e);
 	bool cb_rewrite_invite(Event *e);
 
 	// sync callbacks
@@ -161,7 +165,10 @@ private:
 	bool cb_cap(Event *e);
 	bool cb_cap_done(Event *e);
 
+	bool cb_ns_notice(Event *e);
+
 	void end_cap();
+	void sync_nickserv(User *u);
 
 	User* get_user(std::string name);
 };

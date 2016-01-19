@@ -66,6 +66,7 @@ public:
 class IRCMessageEvent : public IRCEvent
 {
 public:
+	IRCMessageEvent(std::string type, User *s, std::string t, std::string msg);
 	IRCMessageEvent(User *s, std::string target, std::string message);
     std::string target;
     std::string message;
