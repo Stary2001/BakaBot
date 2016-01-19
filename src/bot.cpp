@@ -184,7 +184,7 @@ bool Bot::end_of_motd(Event *e)
 
 	if(!nickserv_done && uname != "" && pass != "")
 	{
-		conn->send_privmsg("NickServ", "identify " + uname + " " + pass);
+		conn->send_privmsg("NickServ", "identify " + pass); // fucking. anope.
 		nickserv_done = true;
 	}
 
