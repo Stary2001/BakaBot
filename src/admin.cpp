@@ -6,6 +6,8 @@
 #include "admin.h"
 #include <iostream>
 
+#if 0
+
 void AdminPlugin::init(PluginHost *h)
 {
 	using namespace std::placeholders;
@@ -315,3 +317,4 @@ bool AdminPlugin::config(Event *e)
 
 	return true;
 }
+#endif

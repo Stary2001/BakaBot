@@ -1,7 +1,12 @@
 #include <string>
 #include <map>
+#include <vector>
+#include <deque>
+#include "util.h"
+#include "bot.h"
 
 class CommandData;
+class IRCMessageEvent;
 
 class CommandDataType
 {
@@ -27,7 +32,13 @@ private:
 class CommandInfo
 {
 public:
-	// insert blocking queue of CommandData* here..
+	CommandInfo() : sender(NULL), next(NULL) {}
+
+	User *sender;
+	std::string target;
+
+	std::deque<CommandData*> in;
+	CommandInfo *next;
 };
 
 /* ====================================== 
@@ -66,4 +77,19 @@ public:
 	StringData(std::string s);
 private:
 	std::string str;
+};
+
+class CommandBase
+{
+public:
+	virtual void run(Bot *b, CommandInfo *i) = 0;
+};
+
+class Command
+{
+public:
+	static void run (Bot *b, IRCMessageEvent *ev);
+	static CommandBase *get_ptr(std::string name);
+private:
+	static std::tuple<CommandInfo*, std::vector<CommandBase*>> parse(Bot *b, IRCMessageEvent *ev);
 };

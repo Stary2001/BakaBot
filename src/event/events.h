@@ -72,14 +72,6 @@ public:
     std::string message;
 };
 
-class IRCCommandEvent : public IRCEvent
-{
-public:
-	IRCCommandEvent(User *s, std::string name, std::string target, std::vector<std::string> params);
-	std::string target;
-	std::vector<std::string> params;
-};
-
 class IRCRegisteredEvent : public Event
 {
 public:

@@ -104,6 +104,3 @@ IRCMessageEvent::IRCMessageEvent(User *s, std::string t, std::string msg) : IRCE
 
 IRCMessageEvent::IRCMessageEvent(std::string type, User *s, std::string t, std::string msg) : IRCEvent(type, s), target(t), message(msg)
 {}
-
-IRCCommandEvent::IRCCommandEvent(User *s, std::string name, std::string t, std::vector<std::string> p) : IRCEvent("command/" + name, s), target(t), params(p)
-{}

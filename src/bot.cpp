@@ -2,6 +2,7 @@
 #include "util.h"
 #include "admin.h"
 #include "logger.h"
+#include "commands/command.h"
 #include <iostream>
 
 void Bot::event_thread_func()
@@ -40,6 +41,7 @@ bool Bot::cb_command(Event *e)
 {
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
 
+
 	std::vector<std::string> prefixes = config->get("prefixes")->as_list();
 
 	auto v = config->get("prefixes." + ev->target);
@@ -48,6 +50,13 @@ bool Bot::cb_command(Event *e)
 		prefixes = v->as_list();
 	}
 
+	if(ev->message.length() > prefix.length() && ev->message.substr(0, prefix.length()) == prefix)
+	{
+		ev->message = ev->message.substr(prefix.length());
+		std::cout << "got command " << ev->message << std::endl;
+		Command::run(this, ev);
+
+		/*auto it = handlers.end();
 	for (auto prefix : prefixes)
 	{
 		if (ev->message.length() > prefix.length() && ev->message.substr(0, prefix.length()) == prefix)
@@ -85,6 +94,15 @@ bool Bot::cb_command(Event *e)
 	}
 
 	return false;
+}
+
+CommandBase *Bot::get_command(std::string s)
+{
+	if(commands.find(s) != commands.end())
+	{
+		return commands[s];
+	}
+	return NULL;
 }
 
 void Bot::end_sasl()
@@ -209,6 +227,15 @@ bool Bot::cb_invite(Event *e)
 	return false;
 }
 
+class PingCommand : public CommandBase
+{
+	virtual void run(Bot *b, CommandInfo *i)
+	{
+		b->conn->send_privmsg(i->target, "aaaaaaaa");
+	}
+};
+
+
 void Bot::connect(ConnectionDispatcher *d)
 {
 	Plugin *p;
@@ -220,7 +247,7 @@ void Bot::connect(ConnectionDispatcher *d)
 
 	conn = new IRCConnection(this, server, port, ssl);
 
-	active_plugins["admin"] = new AdminPlugin();
+	// active_plugins["admin"] = new AdminPlugin();
 	std::shared_ptr<ConfigNode> v = config->get("modules.load");
 	if (v->type()!=NodeType::Null) 
 	{
@@ -257,6 +284,10 @@ void Bot::connect(ConnectionDispatcher *d)
 
 	add_handler("irc/cap_done", "bot", std::bind(&Bot::cb_cap_done, this, _1));
 	add_handler("irc/sasl", "bot", std::bind(&Bot::cb_sasl, this, _1));
+
+
+	commands["ping"] = new PingCommand();
+
 }
 
 bool Bot::check_permissions(User *u, Channel &c, std::string command)

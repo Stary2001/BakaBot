@@ -4,12 +4,15 @@
 #include "config.h"
 #include <thread>
 
+class CommandBase;
+
 class Bot : public PluginHost, public EventSink
 {
 public:
 	Bot();
 	Bot(Config *c, Config *l);
 	void connect(ConnectionDispatcher *d);
+	CommandBase *get_command(std::string n);
 
 	IRCConnection *conn;
 	Config *config;
@@ -37,4 +40,6 @@ private:
 	std::thread event_thread;
 
 	bool nickserv_done;
+
+	std::map<std::string, CommandBase*> commands;
 };

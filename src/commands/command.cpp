@@ -1,64 +1,99 @@
 #include "command.h"
+#include "events.h"
+#include <iostream>
 
-std::string CommandData::to_string()
+void Command::run(Bot *bot, IRCMessageEvent *ev)
 {
-	return type->to_string(this);
+	auto t = Command::parse(bot, ev);
+
+	CommandInfo *i = std::get<0>(t);
+	std::vector<CommandBase*> &v = std::get<1>(t);
+	
+	for(auto cmd: v)
+	{
+		cmd->run(bot, i);
+		if(i != NULL)
+		{
+			i = i -> next;
+		}
+	}
 }
 
-bool CommandData::is_type(CommandDataType *t) const
+std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRCMessageEvent *ev)
 {
-	return type == t;
+	CommandInfo *info = new CommandInfo();
+	CommandInfo *curr = info;
+
+	std::vector<CommandBase*> v;
+
+	std::string &s = ev->message;
+
+	const char *cs = s.c_str();
+
+	bool parsing_name = true;
+	bool parsing_args = false;
+
+	bool eof = false;
+
+	size_t j = 0;
+	size_t i = 0;
+
+	for(; i < s.length() + 1; i++)
+	{
+		if(i == s.length()) { eof = true; }
+
+		char c;
+		if(!eof)
+		{
+			c = cs[i];
+		}
+		else
+		{
+			c = ' ';
+		}
+
+		switch(c)
+		{
+			case '|':
+				// break? :D
+				parsing_args = false;
+				parsing_name = true;
+				j = i + 1;
+			break;
+
+			case ' ':
+			case '\t': // in case..?
+				if(parsing_name)
+				{
+					CommandBase *b = bot->get_command(s.substr(j, i-j));
+					if(b == NULL)
+					{
+						//APPLY ERRRORORRRRORORO HERE
+						throw std::exception();
+					}
+					v.push_back(b);
+
+					curr->sender = ev->sender;
+					curr->target = ev->target;
+
+					curr->next = new CommandInfo();
+					curr = curr->next;
+				}
+				else if(parsing_args)
+				{
+					curr->in.push_back(new StringData(s.substr()));
+				}
+
+				j = i + 1;
+			break;
+		}
+	}
+
+	return std::make_tuple(info, v);
 }
 
-/*
-====================================== 
-string type
-====================================== 
-*/
-StringData::StringData(std::string s) : str(s)
-{}
-
-std::string StringType::to_string(const CommandData* d)
+CommandBase *Command::get_ptr(std::string n)
 {
-	if(!d->is_type(this)) { return ""; }
-	return ((StringData*)d)->str;
+	std::cout << "Trying to get command " << n << std::endl;
+	return NULL;
 }
-
-CommandData* StringType::from_string(std::string s)
-{
-	return new StringData(s);
-}
-
-/*
-======================================
-int type
-======================================
-*/
-
-IntData::IntData(long l) : i(l)
-{}
-
-std::string IntType::to_string(const CommandData* d)
-{
-	if (!d->is_type(this)) { return ""; }
-	return std::to_string(((IntData*)d)->i);
-}
-
-CommandData* IntType::from_string(std::string s)
-{
-	return new IntData(std::stol(s));
-}
-
-bool CommandData::add_type(std::string name, CommandDataType *t)
-{
-	if (types.find("name") != types.end()) return false;
-	types[name] = t;
-	return true;
-}
-
-CommandDataType* CommandData::get_type(std::string name)
-{
-	return types[name];
-}
-
-std::map <std::string, CommandDataType* > CommandData::types;
