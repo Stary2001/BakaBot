@@ -5,7 +5,7 @@ public:
     virtual void deinit(PluginHost *h);
     virtual std::string name();
 private:
-	Bot *bot;
+	Bot *_bot;
 	bool load(Event *e);
 	bool unload(Event *e);
 	bool permissions(Event *e);

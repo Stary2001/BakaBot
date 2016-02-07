@@ -4,18 +4,38 @@
 
 void Command::run(Bot *bot, IRCMessageEvent *ev)
 {
-	auto t = Command::parse(bot, ev);
-
-	CommandInfo *i = std::get<0>(t);
-	std::vector<CommandBase*> &v = std::get<1>(t);
-	
-	for(auto cmd: v)
+	try
 	{
-		cmd->run(bot, i);
-		if(i != NULL)
+		auto t = Command::parse(bot, ev);
+
+		CommandInfo *i = std::get<0>(t);
+		std::vector<CommandBase*> &v = std::get<1>(t);
+		
+
+		i->next = new CommandInfo();
+		i->next->sender = ev->sender;
+		i->next->target = ev->target;
+
+		CommandInfo* curr = i;
+
+		for(auto cmd: v)
 		{
-			i = i -> next;
+			cmd->run(bot, curr);
+			if(curr != NULL)
+			{
+				curr = curr-> next;
+			}
 		}
+
+		while(curr->in.size() != 0)
+		{
+			// todo: clean
+			bot->conn->send_privmsg(ev->target, i->pop()->to_string());
+		}
+	}
+	catch(CommandNotFoundException e)
+	{
+		bot->conn->send_privmsg(ev->target, "Command '" + e.command + "not found!");
 	}
 }
 
@@ -59,29 +79,33 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 				parsing_args = false;
 				parsing_name = true;
 				j = i + 1;
+
+				curr->next = new CommandInfo();
+				curr = curr->next;
+
 			break;
 
 			case ' ':
 			case '\t': // in case..?
 				if(parsing_name)
 				{
-					CommandBase *b = bot->get_command(s.substr(j, i-j));
+					std::string n = s.substr(j, i-j);
+					CommandBase *b = bot->get_command(n);
 					if(b == NULL)
 					{
-						//APPLY ERRRORORRRRORORO HERE
-						throw std::exception();
+						throw CommandNotFoundException(n);
 					}
 					v.push_back(b);
 
 					curr->sender = ev->sender;
 					curr->target = ev->target;
 
-					curr->next = new CommandInfo();
-					curr = curr->next;
+					parsing_name = false;
+					parsing_args = true;
 				}
 				else if(parsing_args)
 				{
-					curr->in.push_back(new StringData(s.substr()));
+					curr->in.push_back(new StringData(s.substr(j, i-j)));
 				}
 
 				j = i + 1;

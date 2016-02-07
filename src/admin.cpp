@@ -1,267 +1,282 @@
 #include "plugin.h"
 #include "bot.h"
 #include "events.h"
+#include "commands/command.h"
 #include <algorithm>
 #include <functional>
 #include "admin.h"
 #include <iostream>
-
-#if 0
-
-void AdminPlugin::init(PluginHost *h)
-{
-	using namespace std::placeholders;
-	Bot *b = (Bot*)h;
-	b->add_handler("command/load", "admin", std::bind(&AdminPlugin::load, this, _1));
-	b->add_handler("command/unload", "admin", std::bind(&AdminPlugin::unload, this, _1));
-	b->add_handler("command/perm", "admin", std::bind(&AdminPlugin::permissions, this, _1));
-	b->add_handler("command/perms", "admin", std::bind(&AdminPlugin::permissions, this, _1));
-	b->add_handler("command/group", "admin", std::bind(&AdminPlugin::group, this, _1));
-	b->add_handler("command/save", "admin", std::bind(&AdminPlugin::save, this, _1));
-	b->add_handler("command/config", "admin", std::bind(&AdminPlugin::config, this, _1));
-	bot = b;
-}
-
-void AdminPlugin::deinit(PluginHost *h)
-{
-	bot->remove_handler("command/load", "admin");
-	bot->remove_handler("command/unload", "admin");
-	bot->remove_handler("command/perm", "admin");
-	bot->remove_handler("command/perms", "admin");
-	bot->remove_handler("command/group", "admin");
-	bot->remove_handler("command/save", "admin");
-	bot->remove_handler("command/config", "admin");
-}
 
 std::string AdminPlugin::name()
 {
 	return "admin";
 }
 
-bool AdminPlugin::load(Event *e)
+COMMAND(load)
 {
-	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
 	Plugin *p = NULL;
 
-	if (ev->params.size() == 0)
+	if (info->in.size() == 0)
 	{
-		bot->conn->send_privmsg(ev->target, "Usage: load [plugin path]");
-		return true;
+		//todo: error
+		bot->conn->send_privmsg(info->target, "Usage: load [plugin path]");
+		return;
 	}
 
-	if((p = bot->load_plugin(ev->params[0])))
+	std::string n = info->pop()->to_string();
+
+	if((p = bot->load_plugin(n)))
 	{
 		p->init(bot);
-		bot->conn->send_privmsg(ev->target, "Loaded plugin " + ev->params[0]);
+		info->next->in.push_back(new StringData("Loaded plugin " + n));
 	}
-
-	return true;
 }
+END_COMMAND
 
-bool AdminPlugin::unload(Event *e)
+COMMAND(unload)
 {
-	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
-	if(bot->unload_plugin(ev->params[0]))
+	if (info->in.size() == 0)
 	{
-		bot->conn->send_privmsg(ev->target, "Unloaded plugin " + ev->params[0]);
+		//todo: error
+		bot->conn->send_privmsg(info->target, "Usage: unload [plugin path]");
+		return;
 	}
 
-	return true;
-}
+	std::string n = info->pop()->to_string();
 
-bool AdminPlugin::save(Event *e)
+	if(bot->unload_plugin(n))
+	{
+		info->next->in.push_back(new StringData("Unloaded plugin " + n));
+	}
+}
+END_COMMAND
+
+COMMAND(save)
 {
-	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
 	bot->config->save();
-	bot->conn->send_privmsg(ev->target, "Saved config!");
-	return true;
+	info->next->in.push_back(new StringData("Saved config!"));
 }
+END_COMMAND
 
-bool AdminPlugin::permissions(Event *e)
+COMMAND(permissions)
 {
-	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
 	std::string usage = "Usage: perms [add|del|list] [command] [user]";
-	if(ev->params.size() == 0 || ev->params.size() < (ev->params[0] != "list" ? 3 : 2))
+
+	if(info->in.size() == 0)
 	{
-		bot->conn->send_privmsg(ev->target, usage);
-		return true;
+		//todo: error
+		bot->conn->send_privmsg(info->target, usage);
+		return;
 	}
 
-	if(ev->params[0] == "add")
+	std::string mode = info->pop()->to_string();
+
+	if(info->in.size() < (mode != "list" ? 2 : 1))
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + ev->params[1]);
+		//todo: error
+		bot->conn->send_privmsg(info->target, usage);
+		return;
+	}
+
+	std::string k = info->pop()->to_string();
+
+	if(mode == "add")
+	{
+		std::string vstr = info->pop()->to_string();
+
+		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
 		if(v->type() == NodeType::Null)
 		{
 			ConfigValue vv = ConfigValue();
 			vv.type = NodeType::List;
-			vv.list.push_back(ev->params[2]);
-			bot->config->set("permissions." + ev->params[1], vv);
+
+			vv.list.push_back(vstr);
+			bot->config->set("permissions." + k, vv);
 		}
 		else
 		{
-			v->as_list().push_back(ev->params[2]);
+			v->as_list().push_back(vstr);
 		}
 	}
-	else if(ev->params[0] == "del")
+	else if(mode == "del")
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + ev->params[1]);
+		std::string k = info->pop()->to_string();
+		std::string vstr = info->pop()->to_string();
+
+		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
+
 		if(v->type() == NodeType::Null) 
 		{
-			bot->conn->send_privmsg(ev->target, "'" + ev->params[1] + "' not found!");
-			return true;
+			//todo: error
+			bot->conn->send_privmsg(info->target, "'" + k + "' not found!");
+			return;
 		}
 
-		auto it = std::find(v->as_list().begin(), v->as_list().end(), ev->params[2]);
+		auto it = std::find(v->as_list().begin(), v->as_list().end(), vstr);
 		if(it != v->as_list().end())
 		{
 			v->as_list().erase(it);
 		}
 	}
-	else if(ev->params[0] == "list")
+	else if(mode == "list")
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + ev->params[1]);
+		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
 		if(v->type() == NodeType::Null) 
 		{
-			bot->conn->send_privmsg(ev->target, "'" + ev->params[1] + "' not found!");
-			return true;
+			//todo: error
+			bot->conn->send_privmsg(info->target, "'" + k + "' not found!");
+			return;
 		}
 
 		std::string l;
 		for(auto s: v->as_list())
 		{
-			l += s + (s != *v->as_list().rbegin() ? ", " : ""); 
+			l += s + (s != *v->as_list().rbegin() ? ", " : "");
 		}
-		bot->conn->send_privmsg(ev->target, bot->conn->antiping(ev->target, l));
+		info->next->in.push_back(new StringData(l));
 	}
 	else
 	{
-		bot->conn->send_privmsg(ev->target, usage);
+		//todo: error
+		bot->conn->send_privmsg(info->target, usage);
 	}
-
-	return true;
 }
+END_COMMAND
 
-bool AdminPlugin::group(Event *e)
+COMMAND(group)
 {
-	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
-	
 	std::string usage = "Usage: group [add|del|list] [group] [user]";
-	if(ev->params.size() == 0 || ev->params.size() < (ev->params[0] != "list" ? 3 : 2))
+
+	if(info->in.size() == 0)
 	{
-		bot->conn->send_privmsg(ev->target, usage);
-		return true;
+		//todo: error
+		bot->conn->send_privmsg(info->target, usage);
+		return;
 	}
 
-	if(ev->params[0] == "add")
+	std::string mode = info->pop()->to_string();
+
+	if(info->in.size() < (mode != "list" ? 2 : 1))
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + ev->params[1]);
+		//todo: error
+		bot->conn->send_privmsg(info->target, usage);
+		return;
+	}
+
+	std::string k = info->pop()->to_string();
+
+	if(mode == "add")
+	{
+		std::string vstr = info->pop()->to_string();
+
+		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + k);
 		if(v->type() == NodeType::Null)
 		{
 			ConfigValue vv = ConfigValue();
 			vv.type = NodeType::List;
-			vv.list.push_back(ev->params[2]);
-			bot->config->set("groups." + ev->params[1], vv);
+			vv.list.push_back(vstr);
+			bot->config->set("groups." + k, vv);
 		}
 		else
 		{
-			v->as_list().push_back(ev->params[2]);
+			v->as_list().push_back(vstr);
 		}
 	}
-	else if(ev->params[0] == "del")
+	else if(mode == "del")
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + ev->params[1]);
+		std::string vstr = info->pop()->to_string();
+
+		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + k);
 		if(v->type() == NodeType::Null) 
 		{
-			bot->conn->send_privmsg(ev->target, "'" + ev->params[1] + "' not found!");
-			return true;
+			//todo: error
+			bot->conn->send_privmsg(info->target, "'" + k + "' not found!");
+			return;
 		}
 
-		auto it = std::find(v->as_list().begin(), v->as_list().end(), ev->params[2]);
+		auto it = std::find(v->as_list().begin(), v->as_list().end(), vstr);
 		if(it != v->as_list().end())
 		{
 			v->as_list().erase(it);
 		}
 	}
-	else if(ev->params[0] == "list")
+	else if(mode == "list")
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + ev->params[1]);
+		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + k);
 		if(v->type() == NodeType::Null) 
 		{
-			bot->conn->send_privmsg(ev->target, "'" + ev->params[1] + "' not found!");
-			return true;
+			//todo: error
+			bot->conn->send_privmsg(info->target, "'" + k + "' not found!");
+			return;
 		}
 
 		std::string l;
 		for(auto s: v->as_list())
 		{
-			l += s + (s != *v->as_list().rbegin() ? ", " : ""); 
+			l += s + (s != *v->as_list().rbegin() ? ", " : "");
 		}
-		bot->conn->send_privmsg(ev->target, bot->conn->antiping(ev->target, l));
+		info->next->in.push_back(new StringData(l));
 	}
 	else
 	{
-		bot->conn->send_privmsg(ev->target, usage);
-		return true;
+		//todo: error
+		bot->conn->send_privmsg(info->target, usage);
+		return;
 	}
-
-	return true;
 }
+END_COMMAND
 
-bool AdminPlugin::config(Event *e)
+COMMAND(config)
 {
-	IRCCommandEvent *ev = reinterpret_cast<IRCCommandEvent*>(e);
-
 	std::string usage = "Usage: config [get/set/add/del] [name] [value]";
-	if(ev->params.size() < 2)
+	if(info->in.size() < 2)
 	{
-		bot->conn->send_privmsg(ev->target, usage);
-		return true;
+		bot->conn->send_privmsg(info->target, usage);
+		return;
 	}
 
-	std::string mode = ev->params[0];
-	ev->params.erase(ev->params.begin());
+	std::string mode = info->pop()->to_string();
+	std::string k = info->pop()->to_string();
 
 	if(mode == "get")
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get(ev->params[0]);
+		std::shared_ptr<ConfigNode> v = bot->config->get(k);
 		if(v->type() == NodeType::Null)
 		{
-			bot->conn->send_privmsg(ev->target, "null");
-			return true;
+			bot->conn->send_privmsg(info->target, "null");
+			return;
 		}
 		else
 		{
-			bot->conn->send_privmsg(ev->target, Config::serialize(v->v));
-			return true;
+			bot->conn->send_privmsg(info->target, Config::serialize(v->v));
+			return;
 		}
 	}
 	else if(mode == "set")
 	{
-		std::string n = ev->params[0];
 		std::string v;
-		ev->params.erase(ev->params.begin());
+		info->in.erase(info->in.begin());
 
-		for(auto a : ev->params)
+		for(auto a : info->in)
 		{
-			v += a + " ";
+			v += a->to_string() + " ";
 		}
 		v = v.substr(0, v.length()-1);
 
 		ConfigValue vv = Config::deserialize(v);
-		bot->config->set(n, vv);
+		bot->config->set(k, vv);
 	}
 	else if(mode == "add")
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get(ev->params[0]);
-		if(v->type() == NodeType::Null) { return true; }
+		std::shared_ptr<ConfigNode> v = bot->config->get(k);
+		if(v->type() == NodeType::Null) { return; }
 		if(v->type() == NodeType::List)
 		{
 			std::string s;
-			ev->params.erase(ev->params.begin());
 
-			for(auto a : ev->params)
+			for(auto a : info->in)
 			{
-				s += a + " ";
+				s += a->to_string() + " ";
 			}
 			s = s.substr(0, s.length()-1);
 
@@ -269,14 +284,14 @@ bool AdminPlugin::config(Event *e)
 		}
 		else if(v->type() == NodeType::Map)
 		{
-			std::string k = ev->params[1];
 			std::string s;
-			ev->params.erase(ev->params.begin());
-			ev->params.erase(ev->params.begin());
 
-			for(auto a : ev->params)
+			info->in.erase(info->in.begin());
+			info->in.erase(info->in.begin());
+
+			for(auto a : info->in)
 			{
-				s += a + " ";
+				s += a->to_string() + " ";
 			}
 			s = s.substr(0, s.length()-1);
 
@@ -285,14 +300,14 @@ bool AdminPlugin::config(Event *e)
 	}
 	else if(mode == "del")
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get(ev->params[0]);
-		if(v->type() == NodeType::Null) { return true; }
+		std::shared_ptr<ConfigNode> v = bot->config->get(k);
+		if(v->type() == NodeType::Null) { return; }
 		std::string s;
-		ev->params.erase(ev->params.begin());
+		info->in.erase(info->in.begin());
 
-		for(auto a : ev->params)
+		for(auto a : info->in)
 		{
-			s += a + " ";
+			s += a->to_string() + " ";
 		}
 		s = s.substr(0, s.length()-1);
 
@@ -311,10 +326,42 @@ bool AdminPlugin::config(Event *e)
 	}
 	else
 	{
-		bot->conn->send_privmsg(ev->target, usage);
-		return true;
+		bot->conn->send_privmsg(info->target, usage);
+		return;
 	}
-
-	return true;
 }
-#endif
+END_COMMAND
+
+
+
+void AdminPlugin::init(PluginHost *h)
+{
+	using namespace std::placeholders;
+	Bot *b = (Bot*)h;
+	REGISTER_COMMAND(b, load);
+	REGISTER_COMMAND(b, unload);
+	CommandBase *p = new permissionsCommand();
+
+	b->register_command("perm", p);
+	b->register_command("permissions", p);
+	b->register_command("perms", p);
+
+	REGISTER_COMMAND(b, group);
+	REGISTER_COMMAND(b, save);
+	REGISTER_COMMAND(b, config);
+	_bot = b;
+}
+
+void AdminPlugin::deinit(PluginHost *h)
+{
+	REMOVE_COMMAND(_bot, load);
+	REMOVE_COMMAND(_bot, unload);
+	
+	_bot->remove_command("perm");
+	_bot->remove_command("permissions");
+	_bot->remove_command("perms");
+
+	REMOVE_COMMAND(_bot, group);
+	REMOVE_COMMAND(_bot, save);
+	REMOVE_COMMAND(_bot, config);
+}

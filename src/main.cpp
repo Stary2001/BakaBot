@@ -2,8 +2,12 @@
 #include "bot.h"
 #include "logger.h"
 #include "config.h"
+<<<<<<< HEAD
 #include "util.h"
 #include <gnutls/gnutls.h>
+=======
+#include "commands/command.h"
+>>>>>>> 9de58d1... it kinda actually works
 
 int main(int argc, char** argv)
 {
@@ -14,6 +18,8 @@ int main(int argc, char** argv)
 	ConnectionDispatcher d;
 	std::vector<Bot*> bots;
 
+    CommandData::add_type("string", new StringType());
+    CommandData::add_type("int", new IntType());
 
 	if (util::fs::exists("./bot.conf")) // move old bot.conf to networks/default.conf
 	{

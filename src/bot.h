@@ -13,6 +13,8 @@ public:
 	Bot(Config *c, Config *l);
 	void connect(ConnectionDispatcher *d);
 	CommandBase *get_command(std::string n);
+	void register_command(std::string n, CommandBase *b);
+	void remove_command(std::string n);
 
 	IRCConnection *conn;
 	Config *config;

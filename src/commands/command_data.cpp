@@ -15,7 +15,7 @@ bool CommandData::is_type(CommandDataType *t) const
 string type
 ====================================== 
 */
-StringData::StringData(std::string s) : str(s)
+StringData::StringData(std::string s) : CommandData(CommandData::get_type("string")), str(s)
 {}
 
 std::string StringType::to_string(const CommandData* d)
@@ -35,7 +35,7 @@ int type
 ======================================
 */
 
-IntData::IntData(long l) : i(l)
+IntData::IntData(long l) : CommandData(CommandData::get_type("int")), i(l)
 {}
 
 std::string IntType::to_string(const CommandData* d)
@@ -61,4 +61,4 @@ CommandDataType* CommandData::get_type(std::string name)
 	return types[name];
 }
 
-std::map <std::string, CommandDataType* > CommandData::types;
+std::map <std::string, CommandDataType*> CommandData::types;
