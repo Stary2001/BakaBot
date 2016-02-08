@@ -10,11 +10,6 @@ void Command::run(Bot *bot, IRCMessageEvent *ev)
 
 		CommandInfo *i = std::get<0>(t);
 		std::vector<CommandBase*> &v = std::get<1>(t);
-		
-
-		i->next = new CommandInfo();
-		i->next->sender = ev->sender;
-		i->next->target = ev->target;
 
 		CommandInfo* curr = i;
 
@@ -50,72 +45,112 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 
 	std::string &s = ev->message;
 
-	const char *cs = s.c_str();
+	const int type_str = 0;
+	const int type_delim = 1;
 
-	bool parsing_name = true;
-	bool parsing_args = false;
+	std::vector<std::pair<int, std::string>> tokens;
 
-	bool eof = false;
+	std::string tmp;
 
-	size_t j = 0;
 	size_t i = 0;
 
-	for(; i < s.length() + 1; i++)
-	{
-		if(i == s.length()) { eof = true; }
+	bool quote = false;
+	bool ignore = false;
 
-		char c;
-		if(!eof)
-		{
-			c = cs[i];
-		}
-		else
-		{
-			c = ' ';
-		}
+	for(; i < s.length() ; i++)
+	{
+		char c = s[i];
 
 		switch(c)
 		{
+			case '\"':
+				if(quote)
+				{
+					tokens.push_back(std::make_pair(type_str, tmp));
+					tmp.clear();
+					ignore = true;
+					quote = false;
+				}
+				else
+				{
+					quote = true;
+				}
+			break;
+
 			case '|':
-				// break? :D
-				parsing_args = false;
-				parsing_name = true;
-				j = i + 1;
-
-				curr->next = new CommandInfo();
-				curr = curr->next;
-
+				tokens.push_back(std::make_pair(type_delim, ""));
+				tmp.clear();
+				ignore = true;
 			break;
 
 			case ' ':
-			case '\t': // in case..?
-				if(parsing_name)
+				if(!ignore)
 				{
-					std::string n = s.substr(j, i-j);
-					CommandBase *b = bot->get_command(n);
-					if(b == NULL)
+					if(!quote && tmp != "")
 					{
-
-						delete info;
-						throw CommandNotFoundException(n);
+						tokens.push_back(std::make_pair(type_str, tmp));
+						tmp.clear();
+						ignore = true;
 					}
-					v.push_back(b);
-
-					curr->sender = ev->sender;
-					curr->target = ev->target;
-
-					parsing_name = false;
-					parsing_args = true;
+					else
+					{
+						tmp += c;
+					}
 				}
-				else if(parsing_args)
-				{
-					curr->in.push_back(new StringData(s.substr(j, i-j)));
-				}
+			break;
 
-				j = i + 1;
+			default:
+				if(ignore) { ignore = false; }
+				tmp += c;
 			break;
 		}
 	}
+
+	if(tmp != "")
+	{
+		tokens.push_back(std::make_pair(type_str, tmp));
+	}
+
+	bool cmd = true;
+
+	for(auto a: tokens)
+	{
+		if(a.first == type_str)
+		{
+			if(cmd)
+			{
+				cmd = false;
+				CommandBase *b = bot->get_command(a.second);
+				if(b == NULL)
+				{
+					delete info;
+					throw CommandNotFoundException(a.second);
+				}
+				v.push_back(b);
+			}
+			else
+			{
+				curr->in.push_back(new StringData(a.second));
+			}
+		}
+		else if(a.first == type_delim)
+		{
+			cmd = true;
+
+			curr->sender = ev->sender;
+			curr->target = ev->target;
+
+			curr->next = new CommandInfo();
+			curr = curr->next;
+		}
+	}
+
+	curr->sender = ev->sender;
+	curr->target = ev->target;
+
+	curr->next = new CommandInfo();
+	curr->next->sender = ev->sender;
+	curr->next->target = ev->target;
 
 	return std::make_tuple(info, v);
 }
