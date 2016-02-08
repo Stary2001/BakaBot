@@ -45,8 +45,15 @@ int main(int argc, char** argv)
 	
 	while(true)
 	{
+		if(bot.should_stop)
+		{
+			break;
+		}
+
 		d.handle();
 	}
+
+	CommandData::cleanup_types();
 
 	curl_global_cleanup();
 	gnutls_global_deinit();

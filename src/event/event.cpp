@@ -79,6 +79,8 @@ void EventSink::handle_event()
 			}
 		}
 	}
+
+	delete e;
 }
 
 Event::Event(std::string t) : type(t)

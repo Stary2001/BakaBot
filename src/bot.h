@@ -11,20 +11,24 @@ class Bot : public PluginHost, public EventSink
 public:
 	Bot();
 	Bot(Config *c, Config *l);
+	~Bot();
+
 	void connect(ConnectionDispatcher *d);
 	CommandBase *get_command(std::string n);
 	void register_command(std::string n, CommandBase *b);
 	void remove_command(std::string n);
 
+	bool should_stop;
+
 	IRCConnection *conn;
 	Config *config;
     Config *locale;
 private:
-
 	//BotConfig config;
 	IRCState state;
 
 	void init_plugins();
+	void destroy_plugins();
 
 	bool print(Event *e);
 	bool end_of_motd(Event *e);

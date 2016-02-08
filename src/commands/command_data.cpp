@@ -61,4 +61,13 @@ CommandDataType* CommandData::get_type(std::string name)
 	return types[name];
 }
 
+void CommandData::cleanup_types()
+{
+	for(auto kv: types)
+	{
+		delete kv.second;
+	}
+}
+
+
 std::map <std::string, CommandDataType*> CommandData::types;

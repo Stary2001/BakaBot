@@ -332,6 +332,12 @@ COMMAND(config)
 }
 END_COMMAND
 
+COMMAND(quit)
+{
+	bot->should_stop = true;
+	bot->conn->quit("Quit issued by " + info->sender->nick + "..");
+}
+END_COMMAND
 
 
 void AdminPlugin::init(PluginHost *h)
@@ -340,15 +346,16 @@ void AdminPlugin::init(PluginHost *h)
 	Bot *b = (Bot*)h;
 	REGISTER_COMMAND(b, load);
 	REGISTER_COMMAND(b, unload);
-	CommandBase *p = new permissionsCommand();
 
-	b->register_command("perm", p);
-	b->register_command("permissions", p);
-	b->register_command("perms", p);
+	b->register_command("perm", new permissionsCommand());
+	b->register_command("permissions", new permissionsCommand());
+	b->register_command("perms", new permissionsCommand());
 
 	REGISTER_COMMAND(b, group);
 	REGISTER_COMMAND(b, save);
 	REGISTER_COMMAND(b, config);
+	REGISTER_COMMAND(b, quit);
+
 	_bot = b;
 }
 
@@ -364,4 +371,5 @@ void AdminPlugin::deinit(PluginHost *h)
 	REMOVE_COMMAND(_bot, group);
 	REMOVE_COMMAND(_bot, save);
 	REMOVE_COMMAND(_bot, config);
+	REMOVE_COMMAND(_bot, quit);
 }

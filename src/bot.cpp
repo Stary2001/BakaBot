@@ -9,23 +9,45 @@ void Bot::event_thread_func()
 {
 	while(true)
 	{
+		if(should_stop)
+		{
+			break;
+		}
+
 		handle_event();
 	}
 }
 
-Bot::Bot() : conn(NULL), config(NULL), locale(NULL), event_thread(std::bind(&Bot::event_thread_func, this))
+Bot::Bot() : should_stop(false), conn(NULL), config(NULL), locale(NULL), event_thread(std::bind(&Bot::event_thread_func, this))
 {}
 
-Bot::Bot(Config *c, Config *l) : conn(NULL), config(c), locale(l), event_thread(std::bind(&Bot::event_thread_func, this))
+Bot::Bot(Config *c, Config *l) : should_stop(false), conn(NULL), config(c), locale(l), event_thread(std::bind(&Bot::event_thread_func, this))
 {}
+
+Bot::~Bot()
+{
+	event_thread.join();
+
+	delete config;
+	delete locale;
+	
+	destroy_plugins();
+}
 
 void Bot::init_plugins()
 {
-	// Plugin::register_plugin(new SedPlugin()); // todo: dynamic plugins
-
 	for(std::pair<std::string, Plugin *> kv : active_plugins)
 	{
 		kv.second->init(this);
+	}
+}
+
+void Bot::destroy_plugins()
+{
+	for(std::pair<std::string, Plugin *> kv : active_plugins)
+	{
+		kv.second->deinit(this);
+		delete kv.second;
 	}
 }
 
@@ -112,7 +134,11 @@ void Bot::register_command(std::string s, CommandBase *b)
 
 void Bot::remove_command(std::string s)
 {
-	commands.erase(s);
+	if(commands.find(s) != commands.end())
+	{
+		delete commands[s];
+		commands.erase(s);
+	}
 }
 
 void Bot::end_sasl()
@@ -249,6 +275,7 @@ void Bot::connect(ConnectionDispatcher *d)
 	conn = new IRCConnection(this, server, port, ssl);
 
 	active_plugins["admin"] = new AdminPlugin();
+
 	std::shared_ptr<ConfigNode> v = config->get("modules.load");
 	if (v->type()!=NodeType::Null) 
 	{

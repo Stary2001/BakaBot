@@ -30,12 +30,14 @@ void Command::run(Bot *bot, IRCMessageEvent *ev)
 		while(curr->in.size() != 0)
 		{
 			// todo: clean
-			bot->conn->send_privmsg(ev->target, i->pop()->to_string());
+			bot->conn->send_privmsg(ev->target, curr->pop()->to_string());
 		}
+
+		delete i;
 	}
 	catch(CommandNotFoundException e)
 	{
-		bot->conn->send_privmsg(ev->target, "Command '" + e.command + "not found!");
+		bot->conn->send_privmsg(ev->target, "Command '" + e.command + "' not found!");
 	}
 }
 
@@ -93,6 +95,8 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 					CommandBase *b = bot->get_command(n);
 					if(b == NULL)
 					{
+
+						delete info;
 						throw CommandNotFoundException(n);
 					}
 					v.push_back(b);

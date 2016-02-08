@@ -117,6 +117,9 @@ public:
 	void send_notice(std::string nick, std::string msg);
 	void nick(std::string nick);
 	void join(std::string chan);
+
+	void quit(std::string msg);
+
 	
 	std::string antiping(std::string c, std::string msg);
 

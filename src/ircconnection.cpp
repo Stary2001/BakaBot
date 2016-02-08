@@ -1,4 +1,5 @@
 #include "ircconnection.h"
+#include "bot.h"
 #include <cstring>
 #include <iostream>
 #include "util.h"
@@ -740,6 +741,13 @@ void IRCConnection::join(std::string chan)
 {
 	send_line("JOIN :" + chan);
 }
+
+void IRCConnection::quit(std::string reason)
+{
+	send_line("QUIT :" + reason);
+	((Bot*)sink)->should_stop = true; // hack hack hack
+}
+
 
 // here be dragons
 void IRCConnection::parse_line(std::string line_s, std::string& sender, std::string& command, std::vector<std::string>& params)
