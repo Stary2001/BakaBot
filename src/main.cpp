@@ -3,7 +3,6 @@
 #include "logger.h"
 #include "config.h"
 #include "util.h"
-#include "commands/command.h"
 #include <gnutls/gnutls.h>
 
 int main(int argc, char** argv)

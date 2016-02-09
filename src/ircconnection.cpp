@@ -706,6 +706,14 @@ IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port
 	sink->add_handler("raw/invite", "ircconnection", std::bind(&IRCConnection::cb_rewrite_invite, this, _1));
 }
 
+IRCConnection::~IRCConnection()
+{
+	for(auto kv: global_users)
+	{
+		delete kv.second;
+	}
+}
+
 void IRCConnection::send_line(std::string line)
 {
 	line += "\r\n";
