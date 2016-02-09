@@ -3,9 +3,12 @@
 #include "logger.h"
 #include "config.h"
 #include "util.h"
+#include "commands/command.h"
+#include <gnutls/gnutls.h>
 
 int main(int argc, char** argv)
 {
+	gnutls_global_init();
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	Logger::instance = new StderrLogger();
@@ -41,6 +44,7 @@ int main(int argc, char** argv)
 	}
 
 	curl_global_cleanup();
+	gnutls_global_deinit();
 
 	return 0;
 }

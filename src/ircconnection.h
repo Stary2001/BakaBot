@@ -109,7 +109,9 @@ public:
 PLUGINCLASS IRCConnection : public LineConnection
 {
 public:
-	IRCConnection(EventSink *e, std::string host, unsigned short port);
+	IRCConnection(EventSink *e, std::string host, unsigned short port, bool ssl = false);
+	~IRCConnection();
+
 	void send_line(std::string line);
 	void send_privmsg(std::string nick, std::string msg);
 	void send_notice(std::string nick, std::string msg);

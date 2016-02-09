@@ -213,10 +213,12 @@ void Bot::connect(ConnectionDispatcher *d)
 {
 	Plugin *p;
 	using namespace std::placeholders;
+
 	std::string server = config->get("server.host")->as_string();
 	short port = (short)config->get("server.port")->as_int();
+	bool ssl = (config->get("server.ssl")->as_string() == "true");
 
-	conn = new IRCConnection(this, server, port);
+	conn = new IRCConnection(this, server, port, ssl);
 
 	active_plugins["admin"] = new AdminPlugin();
 	std::shared_ptr<ConfigNode> v = config->get("modules.load");

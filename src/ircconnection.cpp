@@ -630,8 +630,14 @@ bool IRCConnection::has_cap(std::string name)
 	return irc_server.enabled_caps.find(name) != irc_server.enabled_caps.end();
 }
 
-IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port) : LineConnection(host, port), sink(e)
+IRCConnection::IRCConnection(EventSink *e, std::string host, unsigned short port, bool ssl) : LineConnection(host, port), sink(e)
 {
+	if(ssl)
+	{
+		this->ssl = true;
+		start_ssl();
+	}
+
 	using namespace std::placeholders;
 
 /*	sink->add_handler("raw/001", "ircconnection", std::bind(&IRCConnection::cb_print, this, _1, _2));
