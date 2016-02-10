@@ -131,17 +131,18 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 			{
 				cmd = false;
 
-				if(!check_permissions(bot, ev->sender, ev->target, a.second))
-				{
-					throw PermissionDeniedException(a.second);
-				}
-
 				CommandBase *b = bot->get_command(a.second);
 				if(b == NULL)
 				{
 					delete info;
 					throw CommandNotFoundException(a.second);
 				}
+
+				if(!check_permissions(bot, ev->sender, ev->target, a.second))
+				{
+					throw PermissionDeniedException(a.second);
+				}
+
 				v.push_back(b);
 			}
 			else
