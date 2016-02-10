@@ -34,7 +34,17 @@ void Command::run(Bot *bot, IRCMessageEvent *ev)
 	{
 		bot->conn->send_privmsg(ev->target, "Command '" + e.command + "' not found!");
 	}
+	catch(PermissionDeniedException e)
+	{
+		bot->conn->send_privmsg(ev->target, "Permission denied for '" + e.command + "'!");
+	}
+	catch(CommandErrorException e)
+	{
+		bot->conn->send_privmsg(ev->target, "Command '" + e.command + "' threw error '" + e.err + "'!");
+	}
 }
+
+bool check_permissions(Bot *bot, User *u, std::string target, std::string command);
 
 std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRCMessageEvent *ev)
 {
@@ -120,6 +130,12 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 			if(cmd)
 			{
 				cmd = false;
+
+				if(!check_permissions(bot, ev->sender, ev->target, a.second))
+				{
+					throw PermissionDeniedException(a.second);
+				}
+
 				CommandBase *b = bot->get_command(a.second);
 				if(b == NULL)
 				{
@@ -139,12 +155,14 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 
 			curr->sender = ev->sender;
 			curr->target = ev->target;
+			curr->cmd = v.back();
 
 			curr->next = new CommandInfo();
 			curr = curr->next;
 		}
 	}
 
+	curr->cmd = v.back();
 	curr->sender = ev->sender;
 	curr->target = ev->target;
 
@@ -153,6 +171,80 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 	curr->next->target = ev->target;
 
 	return std::make_tuple(info, v);
+}
+
+
+bool check_permissions(Bot *bot, User *u, std::string target, std::string command)
+{
+	if(!u->synced || u->account == "*")
+	{
+		return false;
+	}
+
+	std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + command);
+
+	if(v->type() == NodeType::List)
+	{
+		for(auto a : v->as_list())
+		{
+			std::string b = a;
+			if(b == u->account)
+			{
+				return true;
+			}
+			else if(b.substr(0, 6) == "group/")
+			{
+				b = b.substr(6);
+
+				if(b == "special/all")
+				{
+					return true;
+				}
+				else if(b == "special/none")
+				{
+					return false;
+				}
+				else if(b == "special/ops")
+				{
+					if(target[0] == '#')
+					{
+						Channel &c = bot->conn->get_channel(target);
+						return c.users[u->nick].modes['o'];
+					}
+					else
+					{
+						return false;
+					}
+				}
+				else if(b == "special/voice")
+				{
+					if(target[0] == '#')
+					{
+						Channel &c = bot->conn->get_channel(target);
+						return c.users[u->nick].modes['v'];
+					}
+					else
+					{
+						return false;
+					}
+				}
+
+				std::shared_ptr<ConfigNode> v2 = bot->config->get("groups." + b);
+				if(v2->type() == NodeType::List)
+				{
+					for(auto c : v2->as_list())
+					{
+						if(c == u->account)
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 CommandBase *Command::get_ptr(std::string n)

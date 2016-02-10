@@ -442,7 +442,7 @@ bool IRCConnection::cb_who(Event *e)
 		else
 		{
 			u->realname = ev->params[7];
-			int i = u->realname.find(' ');
+			size_t i = u->realname.find(' ');
 			if (i != std::string::npos)
 			{
 				u->realname = u->realname.substr(i + 1);

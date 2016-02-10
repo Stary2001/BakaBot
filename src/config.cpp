@@ -22,7 +22,6 @@ void do_migrations(Config *c)
 	c->save();
 }
 
-// todo: abuse the everloving shit out of msgpack
 Config::Config(std::string path)
 {
     root = std::shared_ptr<ConfigNode>(new ConfigNode());

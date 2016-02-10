@@ -72,45 +72,13 @@ bool Bot::cb_command(Event *e)
 		prefixes = v->as_list();
 	}
 
-	if(ev->message.length() > prefix.length() && ev->message.substr(0, prefix.length()) == prefix)
-	{
-		ev->message = ev->message.substr(prefix.length());
-		std::cout << "got command " << ev->message << std::endl;
-		Command::run(this, ev);
-
-		/*auto it = handlers.end();
-	for (auto prefix : prefixes)
+	for(auto prefix: prefixes)
 	{
 		if (ev->message.length() > prefix.length() && ev->message.substr(0, prefix.length()) == prefix)
 		{
 			ev->message = ev->message.substr(prefix.length());
 			std::cout << "got command " << ev->message << std::endl;
-			auto bits = util::split(ev->message, ' ');
-			std::string name = *(bits.begin());
-			bits.erase(bits.begin());
-
-			auto it = handlers.end();
-
-			if ((it = handlers.find("command/" + name)) != handlers.end())
-			{
-				if (it->second.size() == 0)
-				{
-					conn->send_privmsg(ev->target, locale->get("commands.nohandler")->as_string() + " '" + name + "'!");
-				}
-				else if (check_permissions(ev->sender, conn->get_channel(ev->target), name))
-				{
-					queue_event(new IRCCommandEvent(ev->sender, name, ev->target, bits));
-				}
-				else
-				{
-					conn->send_privmsg(ev->target, locale->get("commands.nopermission")->as_string());
-				}
-			}
-			else
-			{
-				conn->send_privmsg(ev->target, locale->get("commands.nohandler")->as_string() + " '" + name + "'!");
-			}
-
+			Command::run(this, ev);
 			return true;
 		}
 	}
@@ -312,61 +280,4 @@ void Bot::connect(ConnectionDispatcher *d)
 
 	add_handler("irc/cap_done", "bot", std::bind(&Bot::cb_cap_done, this, _1));
 	add_handler("irc/sasl", "bot", std::bind(&Bot::cb_sasl, this, _1));
-}
-
-bool Bot::check_permissions(User *u, Channel &c, std::string command)
-{
-	if(!u->synced || u->account == "*")
-	{
-		return false;
-	}
-
-	std::shared_ptr<ConfigNode> v = config->get("permissions." + command);
-
-	if(v->type() == NodeType::List)
-	{
-		for(auto a : v->as_list())
-		{
-			std::string b = a;
-			if(b == u->account)
-			{
-				return true;
-			}
-			else if(b.substr(0, 6) == "group/")
-			{
-				b = b.substr(6);
-
-				if(b == "special/all")
-				{
-					return true;
-				}
-				else if(b == "special/none")
-				{
-					return false;
-				}
-				else if(b == "special/ops")
-				{
-					return c.users[u->nick].modes['o'];
-				}
-				else if(b == "special/voice")
-				{
-					return c.users[u->nick].modes['v'];
-				}
-
-				std::shared_ptr<ConfigNode> v2 = config->get("groups." + b);
-				if(v2->type() == NodeType::List)
-				{
-					for(auto c : v2->as_list())
-					{
-						if(c == u->account)
-						{
-							return true;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false;
 }

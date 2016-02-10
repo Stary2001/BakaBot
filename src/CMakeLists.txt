@@ -31,6 +31,7 @@ endif()
 include_directories(
     .
     ./event
+    ./commands
     ${SOCK}/include
     ${PLUGIN}/include
     ${Jsoncpp_INCLUDE_DIRS}

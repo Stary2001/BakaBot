@@ -40,8 +40,6 @@ private:
 	void end_sasl();
 	bool cb_sasl_done(Event *e);
 
-	bool check_permissions(User *u, Channel &c, std::string command);
-
 	void event_thread_func();
 	std::thread event_thread;
 

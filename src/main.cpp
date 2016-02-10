@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 	
 	while(true)
 	{
-		if(bot.should_stop)
+		if(d.count() == 0)
 		{
 			break;
 		}

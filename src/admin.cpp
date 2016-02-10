@@ -18,9 +18,7 @@ COMMAND(load)
 
 	if (info->in.size() == 0)
 	{
-		//todo: error
-		bot->conn->send_privmsg(info->target, "Usage: load [plugin path]");
-		return;
+		info->error("Usage: load [plugin path]");
 	}
 
 	std::string n = info->pop()->to_string();
@@ -37,9 +35,7 @@ COMMAND(unload)
 {
 	if (info->in.size() == 0)
 	{
-		//todo: error
-		bot->conn->send_privmsg(info->target, "Usage: unload [plugin path]");
-		return;
+		info->error("Usage: unload [plugin path]");
 	}
 
 	std::string n = info->pop()->to_string();
@@ -64,18 +60,14 @@ COMMAND(permissions)
 
 	if(info->in.size() == 0)
 	{
-		//todo: error
-		bot->conn->send_privmsg(info->target, usage);
-		return;
+		info->error(usage);
 	}
 
 	std::string mode = info->pop()->to_string();
 
 	if(info->in.size() < (mode != "list" ? 2 : 1))
 	{
-		//todo: error
-		bot->conn->send_privmsg(info->target, usage);
-		return;
+		info->error(usage);
 	}
 
 	std::string k = info->pop()->to_string();
@@ -107,8 +99,7 @@ COMMAND(permissions)
 
 		if(v->type() == NodeType::Null) 
 		{
-			//todo: error
-			bot->conn->send_privmsg(info->target, "'" + k + "' not found!");
+			info->error("'" + k + "' not found!");
 			return;
 		}
 
@@ -123,8 +114,7 @@ COMMAND(permissions)
 		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
 		if(v->type() == NodeType::Null) 
 		{
-			//todo: error
-			bot->conn->send_privmsg(info->target, "'" + k + "' not found!");
+			info->error("'" + k + "' not found!");
 			return;
 		}
 
@@ -137,8 +127,7 @@ COMMAND(permissions)
 	}
 	else
 	{
-		//todo: error
-		bot->conn->send_privmsg(info->target, usage);
+		info->error(usage);
 	}
 }
 END_COMMAND
@@ -149,8 +138,7 @@ COMMAND(group)
 
 	if(info->in.size() == 0)
 	{
-		//todo: error
-		bot->conn->send_privmsg(info->target, usage);
+		info->error(usage);
 		return;
 	}
 
@@ -158,8 +146,7 @@ COMMAND(group)
 
 	if(info->in.size() < (mode != "list" ? 2 : 1))
 	{
-		//todo: error
-		bot->conn->send_privmsg(info->target, usage);
+		info->error(usage);
 		return;
 	}
 
@@ -189,9 +176,7 @@ COMMAND(group)
 		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + k);
 		if(v->type() == NodeType::Null) 
 		{
-			//todo: error
-			bot->conn->send_privmsg(info->target, "'" + k + "' not found!");
-			return;
+			info->error("'" + k + "' not found!");
 		}
 
 		auto it = std::find(v->as_list().begin(), v->as_list().end(), vstr);
@@ -205,9 +190,7 @@ COMMAND(group)
 		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + k);
 		if(v->type() == NodeType::Null) 
 		{
-			//todo: error
-			bot->conn->send_privmsg(info->target, "'" + k + "' not found!");
-			return;
+			info->error("'" + k + "' not found!");
 		}
 
 		std::string l;
@@ -219,9 +202,7 @@ COMMAND(group)
 	}
 	else
 	{
-		//todo: error
-		bot->conn->send_privmsg(info->target, usage);
-		return;
+		info->error(usage);
 	}
 }
 END_COMMAND
@@ -243,13 +224,12 @@ COMMAND(config)
 		std::shared_ptr<ConfigNode> v = bot->config->get(k);
 		if(v->type() == NodeType::Null)
 		{
-			bot->conn->send_privmsg(info->target, "null");
-			return;
+			info->next->in.push_back(new StringData("null"));
 		}
 		else
 		{
-			bot->conn->send_privmsg(info->target, Config::serialize(v->v));
-			return;
+			// todo: unification of command and config systems..
+			info->next->in.push_back(new StringData(Config::serialize(v->v)));
 		}
 	}
 	else if(mode == "set")
@@ -326,8 +306,7 @@ COMMAND(config)
 	}
 	else
 	{
-		bot->conn->send_privmsg(info->target, usage);
-		return;
+		info->error(usage);
 	}
 }
 END_COMMAND

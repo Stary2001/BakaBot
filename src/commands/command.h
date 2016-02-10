@@ -7,7 +7,7 @@
 
 #define NAME(n) n ## Command 
 
-#define COMMAND(n) class n ## Command : public CommandBase { virtual void run(Bot *bot, CommandInfo *info)
+#define COMMAND(n) class n ## Command : public CommandBase { virtual std::string name() { return #n; }; virtual void run(Bot *bot, CommandInfo *info)
 
 #define END_COMMAND };
 
@@ -16,6 +16,32 @@
 
 class CommandData;
 class IRCMessageEvent;
+
+
+class CommandException : public std::exception
+{};
+
+class CommandNotFoundException : public CommandException
+{
+public:
+	CommandNotFoundException(std::string s) : command(s) {}
+	std::string command;
+};
+
+class PermissionDeniedException : public CommandException
+{
+public:
+	PermissionDeniedException(std::string s) : command(s) {}
+	std::string command;
+};
+
+class CommandErrorException : public CommandException
+{
+public:
+	CommandErrorException(std::string cmd, std::string e) : command(cmd), err(e) {}
+	std::string command;
+	std::string err;
+};
 
 class CommandDataType
 {
@@ -46,21 +72,6 @@ protected:
 	CommandDataType *type;
 private:
 	static std::map <std::string, CommandDataType*> types;
-};
-
-class CommandInfo
-{
-public:
-	CommandInfo() : sender(NULL), next(NULL) {}
-	~CommandInfo() { if(next != NULL) { delete next; } }
-	CommandData *pop() { CommandData *tmp = in.front(); in.pop_front(); return tmp; }
-	template <typename T> T *checked_pop() { CommandData *tmp = in.front(); in.pop_front(); return tmp; }
-
-	User *sender;
-	std::string target;
-
-	std::deque<CommandData*> in;
-	CommandInfo *next;
 };
 
 /* ====================================== 
@@ -140,11 +151,34 @@ private:
 	std::vector<CommandData*> v;
 };
 
+class CommandInfo;
+
 class CommandBase
 {
 public:
 	virtual void run(Bot *b, CommandInfo *i) = 0;
 	virtual ~CommandBase() {};
+	virtual std::string name() = 0;
+private:
+};
+
+class CommandInfo
+{
+public:
+	CommandInfo() : sender(NULL), next(NULL) {}
+	~CommandInfo() { if(next != NULL) { delete next; } }
+	CommandData *pop() { CommandData *tmp = in.front(); in.pop_front(); return tmp; }
+	// template <typename T> T *checked_pop() { CommandData *tmp = in.front(); in.pop_front(); return tmp; }
+
+	void error(std::string s) { throw CommandErrorException( (cmd != NULL ? cmd->name() : "unknown"), s); }
+
+	User *sender;
+	std::string target;
+
+	CommandBase *cmd;
+
+	std::deque<CommandData*> in;
+	CommandInfo *next;
 };
 
 class Command
@@ -154,14 +188,4 @@ public:
 	static CommandBase *get_ptr(std::string name);
 private:
 	static std::tuple<CommandInfo*, std::vector<CommandBase*>> parse(Bot *b, IRCMessageEvent *ev);
-};
-
-class CommandException : public std::exception
-{};
-
-class CommandNotFoundException : public CommandException
-{
-public:
-	CommandNotFoundException(std::string s) : command(s) {}
-	std::string command;
 };

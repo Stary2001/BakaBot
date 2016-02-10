@@ -244,7 +244,7 @@ namespace util
 			if (!exists(name)) return v;
 
 			tinydir_dir dir;
-			int i;
+			unsigned int i;
 			tinydir_open_sorted(&dir, name.c_str());
 
 			for (i = 0; i < dir.n_files; i++)
