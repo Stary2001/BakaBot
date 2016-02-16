@@ -117,6 +117,9 @@ public:
 	void send_notice(std::string nick, std::string msg);
 	void nick(std::string nick);
 	void join(std::string chan);
+	void part(std::string chan);
+
+	void mode(std::string chan, std::string mode, std::string target);
 
 	void quit(std::string msg);
 

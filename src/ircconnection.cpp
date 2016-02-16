@@ -742,6 +742,16 @@ void IRCConnection::join(std::string chan)
 	send_line("JOIN :" + chan);
 }
 
+void IRCConnection::part(std::string chan)
+{
+	send_line("PART :" + chan);
+}
+
+void IRCConnection::mode(std::string chan, std::string mode, std::string target)
+{
+	send_line("MODE " + chan + " " + mode + " " + target);
+}
+
 void IRCConnection::quit(std::string reason)
 {
 	send_line("QUIT :" + reason);

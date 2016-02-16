@@ -318,6 +318,111 @@ COMMAND(quit)
 }
 END_COMMAND
 
+COMMAND(op)
+{
+	if(info->in.size() == 0)
+	{
+		info->error("Usage: op [names]");
+	}
+
+	if(info->target[0] == '#')
+	{
+		while(info->in.size() != 0)
+		{
+			bot->conn->mode(info->target, "+o", info->pop()->to_string());
+		}
+	}
+	else
+	{
+		info->error("Must be used in a channel!");
+	}
+}
+END_COMMAND
+
+COMMAND(deop)
+{
+	if(info->in.size() == 0)
+	{
+		info->error("Usage: deop [names]");
+	}
+
+	if(info->target[0] == '#')
+	{
+		while(info->in.size() != 0)
+		{
+			bot->conn->mode(info->target, "-o", info->pop()->to_string());
+		}
+	}
+	else
+	{
+		info->error("Must be used in a channel!");
+	}
+}
+END_COMMAND
+
+COMMAND(voice)
+{
+	if(info->in.size() == 0)
+	{
+		info->error("Usage: voice [names]");
+	}
+
+	if(info->target[0] == '#')
+	{
+		while(info->in.size() != 0)
+		{
+			bot->conn->mode(info->target, "+v", info->pop()->to_string());
+		}
+	}
+	else
+	{
+		info->error("Must be used in a channel!");
+	}
+}
+END_COMMAND
+
+COMMAND(devoice)
+{
+	if(info->in.size() == 0)
+	{
+		info->error("Usage: devoice [names]");
+	}
+
+
+	if(info->target[0] == '#')
+	{
+		while(info->in.size() != 0)
+		{
+			bot->conn->mode(info->target, "-v", info->pop()->to_string());
+		}
+	}
+	else
+	{
+		info->error("Must be used in a channel!");
+	}
+}
+END_COMMAND
+
+COMMAND(join)
+{
+	if(info->in.size() == 0)
+	{
+		info->error("Usage: join [channel]");
+	}
+
+	bot->conn->join(info->pop()->to_string());
+}
+END_COMMAND
+
+COMMAND(part)
+{
+	if(info->in.size() == 0)
+	{
+		info->error("Usage: part [channel]");
+	}
+	bot->conn->part(info->pop()->to_string());
+}
+END_COMMAND
 
 void AdminPlugin::init(PluginHost *h)
 {
@@ -335,6 +440,12 @@ void AdminPlugin::init(PluginHost *h)
 	REGISTER_COMMAND(b, config);
 	REGISTER_COMMAND(b, quit);
 
+	REGISTER_COMMAND(b, op);
+	REGISTER_COMMAND(b, deop);
+	REGISTER_COMMAND(b, voice);
+	REGISTER_COMMAND(b, devoice);
+	REGISTER_COMMAND(b, join);
+	REGISTER_COMMAND(b, part);
 	_bot = b;
 }
 
@@ -351,4 +462,11 @@ void AdminPlugin::deinit(PluginHost *h)
 	REMOVE_COMMAND(_bot, save);
 	REMOVE_COMMAND(_bot, config);
 	REMOVE_COMMAND(_bot, quit);
+
+	REMOVE_COMMAND(_bot, op);
+	REMOVE_COMMAND(_bot, deop);
+	REMOVE_COMMAND(_bot, voice);
+	REMOVE_COMMAND(_bot, devoice);
+	REMOVE_COMMAND(_bot, join);
+	REMOVE_COMMAND(_bot, part);
 }
