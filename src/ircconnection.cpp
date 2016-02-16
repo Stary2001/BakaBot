@@ -53,7 +53,7 @@ bool IRCConnection::cb_isupport(Event *e)
 			std::cout << "prefix " << v << std::endl;
 			v = v.substr(1); // (modes)prefixes
 							// ov(@+)
-			auto b = util::split(v, ')');
+			auto b = util::split(v, ")");
 			unsigned int i = 0;
 			// 0 = ov, 1 = @+
 
@@ -70,7 +70,7 @@ bool IRCConnection::cb_isupport(Event *e)
 		}
 		else if(k == "CHANMODES")
 		{
-			std::vector<std::string> a = util::split(v, ',');
+			std::vector<std::string> a = util::split(v, ",");
 			std::copy(a[0].begin(), a[0].end(), std::inserter(irc_server.list_chanmodes, irc_server.list_chanmodes.begin()));
 			std::copy(a[1].begin(), a[1].end(), std::inserter(irc_server.alwaysparam_chanmodes, irc_server.alwaysparam_chanmodes.begin()));
 			std::copy(a[2].begin(), a[2].end(), std::inserter(irc_server.setparam_chanmodes,irc_server.setparam_chanmodes.begin()));
@@ -496,7 +496,7 @@ bool IRCConnection::cb_ns_notice(Event *e)
 		}
 		else if (irc_server.supports_ns_status && ev->message.substr(0, 6) == "STATUS")
 		{
-			auto v = util::split(ev->message, ' ');
+			auto v = util::split(ev->message, " ");
 			User *u = get_user(v[1]);
 			if (v[2] == "3")
 			{
@@ -576,7 +576,7 @@ bool IRCConnection::cb_cap(Event *e)
 
 	if (ev->params[1] == "ACK")
 	{
-		auto v = util::split(ev->params[2], ' ');
+		auto v = util::split(ev->params[2], " ");
 		for (auto s : v)
 		{
 			irc_server.enabled_caps.insert(s);
@@ -594,7 +594,7 @@ bool IRCConnection::cb_cap(Event *e)
 	}
 	else if (ev->params[1] == "LS")
 	{
-		auto v = util::split(ev->params[2], ' ');
+		auto v = util::split(ev->params[2], " ");
 		for (auto s : v)
 		{
 			irc_server.caps.insert(s);

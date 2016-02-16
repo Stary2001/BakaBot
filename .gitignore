@@ -31,4 +31,4 @@
 BakaBot-plugins/
 build/
 run/BakaBot
-run/bot.conf
+run/networks

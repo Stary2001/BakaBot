@@ -147,7 +147,7 @@ ConfigValue Config::deserialize(std::string val)
         v.type = NodeType::List;
         val = val.substr(1);
         val = val.substr(0, val.length() - 1);
-        v.list = util::split(val, '|');
+        v.list = util::split(val, "|");
     }
     else if(type == "map")
     {
@@ -155,10 +155,10 @@ ConfigValue Config::deserialize(std::string val)
         val = val.substr(1);
         val = val.substr(0, val.length() - 1);
 
-        auto parts = util::split(val, '|');
+        auto parts = util::split(val, "|");
         for(auto kv : parts)
         {
-            auto partss = util::split(kv, '=');
+            auto partss = util::split(kv, "=");
             v.map[partss[0]] = deserialize(partss[1]);
         }
     }
@@ -198,7 +198,7 @@ std::shared_ptr<ConfigNode> Config::get(std::string path)
 {
     std::shared_ptr<ConfigNode> v = root;
 
-    std::vector<std::string> p = util::split(path, '.');
+    std::vector<std::string> p = util::split(path, ".");
     for(std::string entry : p)
     {
         if(v->children.find(entry) == v->children.end())

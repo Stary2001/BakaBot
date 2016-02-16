@@ -210,11 +210,10 @@ bool check_permissions(Bot *bot, User *u, std::string target, std::string comman
 					if(target[0] == '#')
 					{
 						Channel &c = bot->conn->get_channel(target);
-						return c.users[u->nick].modes['o'];
-					}
-					else
-					{
-						return false;
+						if(c.users[u->nick].modes['o'])
+						{
+							return true;
+						}
 					}
 				}
 				else if(b == "special/voice")
@@ -222,11 +221,10 @@ bool check_permissions(Bot *bot, User *u, std::string target, std::string comman
 					if(target[0] == '#')
 					{
 						Channel &c = bot->conn->get_channel(target);
-						return c.users[u->nick].modes['v'];
-					}
-					else
-					{
-						return false;
+						if(c.users[u->nick].modes['v'])
+						{
+							return true;
+						}
 					}
 				}
 
