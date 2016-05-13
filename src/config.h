@@ -4,6 +4,7 @@
 #include <fstream>
 #include <memory>
 #include "export.h"
+#include "data/data.h"
 
 PLUGINCLASS ConfigException : public std::exception
 {
@@ -12,39 +13,18 @@ public:
     std::string m_message;
 };
 
-enum class NodeType
-{
-	List,
-	Map,
-	String,
-	Int,
-	Null
-};
-
-PLUGINCLASS ConfigValue
-{
-public:
-	ConfigValue();
-	ConfigValue(std::string s);
-	ConfigValue(int i);
-	NodeType type;
-	std::string string;
-	long integer;
-	std::vector<std::string> list;
-	std::map<std::string, ConfigValue> map;
-};
-
 PLUGINCLASS ConfigNode
 {
 public:
-	NodeType type();
 	std::string as_string();
 	long as_int();
-	std::vector<std::string>& as_list();
-	std::map<std::string, ConfigValue>& as_map();
+	std::vector<Data*>& as_list();
+	std::map<std::string, Data*>& as_map();
+
+    bool is(std::string type);
 
 	std::map<std::string, std::shared_ptr<ConfigNode>> children;
-	ConfigValue v;
+	Data *v;
 
 	void save(std::string prefix, std::ofstream &f);
 };
@@ -56,37 +36,13 @@ public:
     static Config* load(std::string path);
     std::shared_ptr<ConfigNode> get(std::string path);
 
-    void set(std::string path, ConfigValue vv);
+    void set(std::string path, Data *vv);
     void save();
 
-    static std::string serialize(ConfigValue &v);
-    static ConfigValue deserialize(std::string val);
+    static std::string serialize(Data &v);
+    static Data deserialize(std::string val);
 	
 	std::string filename;
 private:
     std::shared_ptr<ConfigNode> root;
 };
-
-
-inline bool operator==(const ConfigValue &lhs, const ConfigValue &rhs)
-{
-    if(lhs.type != rhs.type) return false;
-    if(lhs.type == NodeType::String)
-    {
-        if(lhs.string != rhs.string) return false;
-    }
-    else if(lhs.type == NodeType::Int)
-    {
-        if(lhs.integer != rhs.integer) return false;
-    }  
-    else if(lhs.type == NodeType::List)
-    {
-        if(lhs.list != rhs.list) return false;
-    }
-    else if(lhs.type == NodeType::Map)
-    {
-        if(lhs.map != rhs.map) return false;
-    }
-
-    return true;
-}

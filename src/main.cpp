@@ -5,6 +5,7 @@
 #include "util.h"
 #include <gnutls/gnutls.h>
 #include "commands/command.h"
+#include "data/data.h"
 
 int main(int argc, char** argv)
 {
@@ -15,10 +16,11 @@ int main(int argc, char** argv)
 	ConnectionDispatcher d;
 	std::vector<Bot*> bots;
 
-	CommandData::add_type("string", new StringType());
-	CommandData::add_type("int", new IntType());
-	CommandData::add_type("pair", new PairType());
-	CommandData::add_type("list", new ListType());
+	Data::add_type("string", new StringType());
+	Data::add_type("int", new IntType());
+	Data::add_type("pair", new PairType());
+	Data::add_type("list", new ListType());
+	Data::add_type("map", new MapType());
 
 	if (util::fs::exists("./bot.conf")) // move old bot.conf to networks/default.conf
 	{
@@ -52,7 +54,7 @@ int main(int argc, char** argv)
 		d.handle();
 	}
 
-	CommandData::cleanup_types();
+	Data::cleanup_types();
 
 	curl_global_cleanup();
 	gnutls_global_deinit();

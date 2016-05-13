@@ -74,20 +74,19 @@ COMMAND(permissions)
 
 	if(mode == "add")
 	{
-		std::string vstr = info->pop()->to_string();
+		Data *vstr = info->pop();
 
 		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
-		if(v->type() == NodeType::Null)
+		if (v->is("null"))
 		{
-			ConfigValue vv = ConfigValue();
-			vv.type = NodeType::List;
-
-			vv.list.push_back(vstr);
-			bot->config->set("permissions." + k, vv);
+			std::vector<Data*> v = {vstr};
+			ListData *d = new ListData(v);
+			bot->config->set("permissions." + k, d);
 		}
-		else
+		else if(v->is("list"))
 		{
-			v->as_list().push_back(vstr);
+			ListData *l = (ListData*)v->v;
+			l->push_back(vstr);
 		}
 	}
 	else if(mode == "del")
@@ -97,13 +96,15 @@ COMMAND(permissions)
 
 		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
 
-		if(v->type() == NodeType::Null) 
+		if (v->is("null"))
 		{
 			info->error("'" + k + "' not found!");
 			return;
 		}
 
-		auto it = std::find(v->as_list().begin(), v->as_list().end(), vstr);
+		DataEquals f(vstr);
+		auto it = std::find_if(v->as_list().begin(), v->as_list().end(), f);
+
 		if(it != v->as_list().end())
 		{
 			v->as_list().erase(it);
@@ -112,7 +113,7 @@ COMMAND(permissions)
 	else if(mode == "list")
 	{
 		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
-		if(v->type() == NodeType::Null) 
+		if (v->is("null"))
 		{
 			info->error("'" + k + "' not found!");
 			return;
@@ -121,7 +122,7 @@ COMMAND(permissions)
 		std::string l;
 		for(auto s: v->as_list())
 		{
-			l += s + (s != *v->as_list().rbegin() ? ", " : "");
+			l += s->to_string() + (s != *v->as_list().rbegin() ? ", " : "");
 		}
 		info->next->in.push_back(new StringData(l));
 	}
@@ -154,15 +155,14 @@ COMMAND(group)
 
 	if(mode == "add")
 	{
-		std::string vstr = info->pop()->to_string();
+		Data *vstr = info->pop();
 
 		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + k);
-		if(v->type() == NodeType::Null)
+		if (!v->is("null"))
 		{
-			ConfigValue vv = ConfigValue();
-			vv.type = NodeType::List;
-			vv.list.push_back(vstr);
-			bot->config->set("groups." + k, vv);
+			std::vector<Data*> v = {vstr};
+			ListData *d = new ListData(v);
+			bot->config->set("groups." + k, d);
 		}
 		else
 		{
@@ -174,12 +174,13 @@ COMMAND(group)
 		std::string vstr = info->pop()->to_string();
 
 		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + k);
-		if(v->type() == NodeType::Null) 
+		if (v->is("null"))
 		{
 			info->error("'" + k + "' not found!");
 		}
 
-		auto it = std::find(v->as_list().begin(), v->as_list().end(), vstr);
+		DataEquals f(vstr);
+		auto it = std::find_if(v->as_list().begin(), v->as_list().end(), f);
 		if(it != v->as_list().end())
 		{
 			v->as_list().erase(it);
@@ -188,7 +189,7 @@ COMMAND(group)
 	else if(mode == "list")
 	{
 		std::shared_ptr<ConfigNode> v = bot->config->get("groups." + k);
-		if(v->type() == NodeType::Null) 
+		if (v->is("null"))
 		{
 			info->error("'" + k + "' not found!");
 		}
@@ -196,7 +197,7 @@ COMMAND(group)
 		std::string l;
 		for(auto s: v->as_list())
 		{
-			l += s + (s != *v->as_list().rbegin() ? ", " : "");
+			l += s->to_string() + (s != *v->as_list().rbegin() ? ", " : "");
 		}
 		info->next->in.push_back(new StringData(l));
 	}
@@ -222,14 +223,13 @@ COMMAND(config)
 	if(mode == "get")
 	{
 		std::shared_ptr<ConfigNode> v = bot->config->get(k);
-		if(v->type() == NodeType::Null)
+		if (v->is("null"))
 		{
 			info->next->in.push_back(new StringData("null"));
 		}
 		else
 		{
-			// todo: unification of command and config systems..
-			info->next->in.push_back(new StringData(Config::serialize(v->v)));
+			info->next->in.push_back(v->v);
 		}
 	}
 	else if(mode == "set")
@@ -243,14 +243,13 @@ COMMAND(config)
 		}
 		v = v.substr(0, v.length()-1);
 
-		ConfigValue vv = Config::deserialize(v);
-		bot->config->set(k, vv);
+		bot->config->set(k, Data::deserialize(v));
 	}
 	else if(mode == "add")
 	{
 		std::shared_ptr<ConfigNode> v = bot->config->get(k);
-		if(v->type() == NodeType::Null) { return; }
-		if(v->type() == NodeType::List)
+		if (v->is("null")) { return; }
+		if (v->is("list"))
 		{
 			std::string s;
 
@@ -260,9 +259,9 @@ COMMAND(config)
 			}
 			s = s.substr(0, s.length()-1);
 
-			v->as_list().push_back(s);
+			v->as_list().push_back(new StringData(s));
 		}
-		else if(v->type() == NodeType::Map)
+		if (v->is("map"))
 		{
 			std::string s;
 
@@ -275,13 +274,13 @@ COMMAND(config)
 			}
 			s = s.substr(0, s.length()-1);
 
-			v->as_map()[k] = Config::deserialize(s);
+			v->as_map()[k] = Data::deserialize(s);
 		}
 	}
 	else if(mode == "del")
 	{
 		std::shared_ptr<ConfigNode> v = bot->config->get(k);
-		if(v->type() == NodeType::Null) { return; }
+		if(v->is("null")) { return; }
 		std::string s;
 		info->in.erase(info->in.begin());
 
@@ -291,15 +290,16 @@ COMMAND(config)
 		}
 		s = s.substr(0, s.length()-1);
 
-		if(v->type() == NodeType::List)
+		if (v->is("list"))
 		{
-			auto it = std::find(v->as_list().begin(), v->as_list().end(), s);
+			DataEquals f(s);
+			auto it = std::find_if(v->as_list().begin(), v->as_list().end(), f);
 			if(it != v->as_list().end())
 			{
 				v->as_list().erase(it);
 			}
 		}
-		else if(v->type() == NodeType::Map)
+		else if (v->is("map"))
 		{
 			v->as_map().erase(s);
 		}
@@ -424,6 +424,48 @@ COMMAND(part)
 }
 END_COMMAND
 
+/*COMMAND(alias)
+{
+	std::string usage = "Usage: alias [add|del|list] [name]";
+	if(info->in.size() == 0)
+	{
+		info->error(usage);
+	}
+
+	std::string mode = info->pop()->to_string();
+	if(mode == "list")
+	{
+
+	}
+	else if(mode == "add")
+	{
+		if(info->in.size() == 2)
+		{
+			std::strign k = info->pop()->to_string();
+			std::string v = info->pop()->to_string();
+
+			bot->aliases[k] = v;
+		}
+		else
+		{
+			info->error(usage);
+		}
+	}
+	else if(mode == "del")
+	{
+		if(info->in.size() == 1)
+		{
+			std::string n = info->pop()->to_string();
+			bot->aliases.erase(n);
+		}
+		else
+		{
+			info->error(usage);
+		}
+	}
+}
+END_COMMAND*/
+
 void AdminPlugin::init(PluginHost *h)
 {
 	using namespace std::placeholders;
@@ -446,6 +488,8 @@ void AdminPlugin::init(PluginHost *h)
 	REGISTER_COMMAND(b, devoice);
 	REGISTER_COMMAND(b, join);
 	REGISTER_COMMAND(b, part);
+
+	//REGISTER_COMMAND(b, alias);
 	_bot = b;
 }
 
@@ -469,4 +513,6 @@ void AdminPlugin::deinit(PluginHost *h)
 	REMOVE_COMMAND(_bot, devoice);
 	REMOVE_COMMAND(_bot, join);
 	REMOVE_COMMAND(_bot, part);
+
+	//REMOVE_COMMAND(_bot, alias);
 }

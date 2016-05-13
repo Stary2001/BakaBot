@@ -2,6 +2,7 @@
 #include "util.h"
 #include "admin.h"
 #include "logger.h"
+#include "lua_plugin.h"
 #include "commands/command.h"
 #include <iostream>
 
@@ -19,10 +20,16 @@ void Bot::event_thread_func()
 }
 
 Bot::Bot() : should_stop(false), conn(NULL), config(NULL), locale(NULL), event_thread(std::bind(&Bot::event_thread_func, this))
-{}
+{
+	using namespace std::placeholders;
+	add_extension_handler("lua", std::bind(&Bot::open_lua, this, _1));
+}
 
 Bot::Bot(Config *c, Config *l) : should_stop(false), conn(NULL), config(c), locale(l), event_thread(std::bind(&Bot::event_thread_func, this))
-{}
+{
+	using namespace std::placeholders;
+	add_extension_handler("lua", std::bind(&Bot::open_lua, this, _1));
+}
 
 Bot::~Bot()
 {
@@ -32,6 +39,11 @@ Bot::~Bot()
 	delete locale;
 	
 	destroy_plugins();
+}
+
+Plugin *Bot::open_lua(std::string filename)
+{
+	return new LuaPlugin(filename);
 }
 
 void Bot::init_plugins()
@@ -63,17 +75,17 @@ bool Bot::cb_command(Event *e)
 {
 	IRCMessageEvent *ev = reinterpret_cast<IRCMessageEvent*>(e);
 
-
-	std::vector<std::string> prefixes = config->get("prefixes")->as_list();
+	std::vector<Data*> prefixes = config->get("prefixes")->as_list();
 
 	auto v = config->get("prefixes." + ev->target);
-	if (v->type() != NodeType::Null)
+	if (!v->is("null"))
 	{
 		prefixes = v->as_list();
 	}
 
-	for(auto prefix: prefixes)
+	for(auto prefix_dat: prefixes)
 	{
+		std::string prefix = prefix_dat->to_string();
 		if (ev->message.length() > prefix.length() && ev->message.substr(0, prefix.length()) == prefix)
 		{
 			ev->message = ev->message.substr(prefix.length());
@@ -211,11 +223,11 @@ bool Bot::end_of_motd(Event *e)
 	}
 
 	std::shared_ptr<ConfigNode> v = config->get("channels.join");
-	if (v->type()!=NodeType::Null)
+	if (!v->is("null"))
 	{
 		for (auto chan: v->as_list()) 
 		{
-			conn->join(chan);
+			conn->join(chan->to_string());
 		}
 	}
 	return false;
@@ -245,14 +257,14 @@ void Bot::connect(ConnectionDispatcher *d)
 	active_plugins["admin"] = new AdminPlugin();
 
 	std::shared_ptr<ConfigNode> v = config->get("modules.load");
-	if (v->type()!=NodeType::Null) 
+	if (!v->is("null"))
 	{
-		for (auto plugin: v->as_list()) 
+		for (auto path: v->as_list()) 
 		{
-			p = load_plugin(plugin);
+			p = load_plugin(path->to_string());
 			if (p == NULL) 
 			{
-				Logger::instance->log(locale->get("plugins.noload")->as_string()+plugin, LogLevel::ERR);
+				Logger::instance->log(locale->get("plugins.noload")->as_string()+path->to_string(), LogLevel::ERR);
 			}
 		}
 	}

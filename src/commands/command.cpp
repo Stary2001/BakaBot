@@ -184,11 +184,11 @@ bool check_permissions(Bot *bot, User *u, std::string target, std::string comman
 
 	std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + command);
 
-	if(v->type() == NodeType::List)
+	if (v->is("list"))
 	{
 		for(auto a : v->as_list())
 		{
-			std::string b = a;
+			std::string b = a->to_string();
 			if(b == u->account)
 			{
 				return true;
@@ -229,11 +229,11 @@ bool check_permissions(Bot *bot, User *u, std::string target, std::string comman
 				}
 
 				std::shared_ptr<ConfigNode> v2 = bot->config->get("groups." + b);
-				if(v2->type() == NodeType::List)
+				if (v2->is("list"))
 				{
 					for(auto c : v2->as_list())
 					{
-						if(c == u->account)
+						if(c->to_string() == u->account)
 						{
 							return true;
 						}

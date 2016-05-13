@@ -5,23 +5,6 @@
 #include "logger.h"
 #include "util.h"
 
-
-ConfigValue deserialize(std::string val);
-
-void do_migrations(Config *c)
-{
-	if (c->get("prefix")->type() == NodeType::String) // prefix:string -> prefixes:list
-	{
-		ConfigValue v;
-		v.type = NodeType::List;
-		v.list.push_back(c->get("prefix")->as_string());
-		c->set("prefixes", v);
-		c->set("prefix", ConfigValue());
-	}
-
-	c->save();
-}
-
 Config::Config(std::string path)
 {
     root = std::shared_ptr<ConfigNode>(new ConfigNode());
@@ -35,8 +18,10 @@ Config::Config(std::string path)
             int eq = s.find("=");
             std::string k = s.substr(0, eq);
             std::string v = s.substr(eq+1);
-            ConfigValue vv = deserialize(v);
-            set(k, vv);
+            int type = v.find(":");
+            std::string t = v.substr(0, type);
+            v = v.substr(type+1);
+            set(k, Data::get_type(t)->from_string(v));
         }
     }
     else
@@ -47,47 +32,53 @@ Config::Config(std::string path)
 	config_file.close();
 
     filename = path;
-
-	do_migrations(this);
 }
-
-ConfigValue::ConfigValue() : type(NodeType::Null), integer(0)
-{}
-
-ConfigValue::ConfigValue(std::string s) : type(NodeType::String), string(s), integer(0)
-{}
-
-ConfigValue::ConfigValue(int i) : type(NodeType::Int), integer(i)
-{}
 
 // todo: error checking?
 
-NodeType ConfigNode::type()
-{
-    return v.type;
-}
-
 std::string ConfigNode::as_string()
 {
-    return v.string;
+    if(v == nullptr) { return ""; }
+    return v->to_string();
 }
 
 long ConfigNode::as_int()
 {
-    return v.integer;
+    if(v == nullptr) { return 0; }
+    static DataType *t = Data::get_type("int");
+    if(v->get_type() != t) { return 0; }
+    return ((IntData*)v)->i;
 }
 
-std::vector<std::string> & ConfigNode::as_list()
+std::vector<Data*> & ConfigNode::as_list()
 {
-    return v.list;
+    if(v == nullptr) { throw new ConfigException("null"); }
+    static DataType *t = Data::get_type("list");
+    if(v->get_type() != t) { throw ConfigException("not a list god damnit"); }
+    return ((ListData*)v)->v;
 }
 
-std::map<std::string, ConfigValue> & ConfigNode::as_map()
+std::map<std::string, Data*> & ConfigNode::as_map()
 {
-    return v.map;
+    if(v == nullptr) { throw new ConfigException("null"); }
+    static DataType *t = Data::get_type("map");
+    if(v->get_type() != t) { throw ConfigException("not a map god damnit"); }
+    return ((MapData*)v)->map;
 }
 
-std::string Config::serialize(ConfigValue &v)
+bool ConfigNode::is(std::string type)
+{
+    if(v == nullptr)
+    {
+        return type == "null";
+    }  
+    else
+    {
+        return v->get_type()->name == type;
+    }
+}
+
+/*std::string Config::serialize(ConfigValue &v)
 {
     std::string val;
     if(v.type == NodeType::String)
@@ -164,13 +155,13 @@ ConfigValue Config::deserialize(std::string val)
     }
 
     return v;
-}
+}*/
 
 void ConfigNode::save(std::string prefix, std::ofstream &f)
 {
-    if(prefix != "" && v.type != NodeType::Null)
+    if(prefix != "" && !is("null"))
     {
-        std::string s = prefix + "=" + Config::serialize(v) + "\n";
+        std::string s = prefix + "=" + Data::serialize(v) + "\n";
         f.write(s.c_str(), s.size());
     }
 
@@ -210,7 +201,7 @@ std::shared_ptr<ConfigNode> Config::get(std::string path)
     return v;
 }
 
-void Config::set(std::string path, ConfigValue vv)
+void Config::set(std::string path, Data *vv)
 {
     std::shared_ptr<ConfigNode> v = get(path);
     v->v = vv;

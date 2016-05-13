@@ -46,4 +46,6 @@ private:
 	bool nickserv_done;
 
 	std::map<std::string, CommandBase*> commands;
+
+	Plugin *open_lua(std::string filename);
 };
