@@ -17,6 +17,7 @@ file(GLOB_RECURSE SOURCES "*.cpp")
 find_path(SOCK NAMES libsock.a sock.lib HINTS ../../corelibs/libsock NO_DEFAULT_PATH)
 find_path(PLUGIN NAMES libplugin.a plugin.lib HINTS ../../corelibs/libplugin NO_DEFAULT_PATH)
 find_package(Jsoncpp REQUIRED)
+find_package(TinyXML REQUIRED)
 find_package(CURL REQUIRED)
 find_package(GnuTLS REQUIRED)
 find_package(Lua REQUIRED)  
@@ -38,14 +39,14 @@ include_directories(
     ${Jsoncpp_INCLUDE_DIRS}
     ${CURL_INCLUDE_DIRS}
     ${GNUTLS_INCLUDE_DIR}
-	${LUA_INCLUDE_DIR}
+    ${LUA_INCLUDE_DIR}
 )
 
 add_executable(BakaBot ${SOURCES})
 if(UNIX)
-  target_link_libraries(BakaBot ${GNUTLS_LIBRARY} ${PLUGIN}/libplugin.a ${SOCK}/libsock.a pthread dl ${Jsoncpp_LIBRARY} ${CURL_LIBRARY} ${LUA_LIBRARIES})
+  target_link_libraries(BakaBot ${GNUTLS_LIBRARY} ${PLUGIN}/libplugin.a ${SOCK}/libsock.a pthread dl ${Jsoncpp_LIBRARY} ${CURL_LIBRARY} ${LUA_LIBRARIES} ${TINYXML2_LIBRARIES})
 elseif(WIN32)
-  target_link_libraries(BakaBot ws2_32.lib ${GNUTLS_LIBRARY} ${PLUGIN}/plugin.lib ${SOCK}/sock.lib ${Jsoncpp_LIBRARY} ${CURL_LIBRARY} ${LUA_LIBRARIES})
+  target_link_libraries(BakaBot ws2_32.lib ${GNUTLS_LIBRARY} ${PLUGIN}/plugin.lib ${SOCK}/sock.lib ${Jsoncpp_LIBRARY} ${CURL_LIBRARY} ${LUA_LIBRARIES} ${TINYXML2_LIBRARIES})
 endif()
 
 install(TARGETS BakaBot RUNTIME DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../run)

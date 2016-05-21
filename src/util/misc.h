@@ -1,6 +1,7 @@
 namespace util
 {
 	PLUGINEXPORT std::vector<std::string> split(const std::string& s, const std::string& delim, const bool keep_empty = true);
+	PLUGINEXPORT std::string replace(std::string str, const std::string& from, const std::string& to);
 	PLUGINEXPORT int rand(int a, int b);
 	PLUGINEXPORT std::string http_request(std::string url);
 	PLUGINEXPORT std::string http_request(std::string url, std::map<std::string, std::string> params);

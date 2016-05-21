@@ -25,7 +25,9 @@ void Command::run(Bot *bot, IRCMessageEvent *ev)
 		while(curr->in.size() != 0)
 		{
 			// todo: clean
-			bot->conn->send_privmsg(ev->target, curr->pop()->to_string());
+			std::string s = curr->pop()->to_string();
+			s = util::replace(s, "\n", " / ");
+			bot->conn->send_privmsg(ev->target, s);
 		}
 
 		delete i;
