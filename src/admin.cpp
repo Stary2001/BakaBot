@@ -12,7 +12,7 @@ std::string AdminPlugin::name()
 	return "admin";
 }
 
-COMMAND(load)
+COMMAND(load, CommandFlags::OneParam)
 {
 	Plugin *p = NULL;
 
@@ -31,7 +31,7 @@ COMMAND(load)
 }
 END_COMMAND
 
-COMMAND(unload)
+COMMAND(unload, CommandFlags::OneParam)
 {
 	if (info->in.size() == 0)
 	{
@@ -47,14 +47,14 @@ COMMAND(unload)
 }
 END_COMMAND
 
-COMMAND(save)
+COMMAND(save, CommandFlags::None)
 {
 	bot->config->save();
 	info->next->in.push_back(new StringData("Saved config!"));
 }
 END_COMMAND
 
-COMMAND(permissions)
+COMMAND(permissions, CommandFlags::None)
 {
 	std::string usage = "Usage: perms [add|del|list] [command] [user]";
 
@@ -133,7 +133,7 @@ COMMAND(permissions)
 }
 END_COMMAND
 
-COMMAND(group)
+COMMAND(group, CommandFlags::None)
 {
 	std::string usage = "Usage: group [add|del|list] [group] [user]";
 
@@ -208,7 +208,7 @@ COMMAND(group)
 }
 END_COMMAND
 
-COMMAND(config)
+COMMAND(config, CommandFlags::None)
 {
 	std::string usage = "Usage: config [get/set/add/del] [name] [value]";
 	if(info->in.size() < 2)
@@ -311,14 +311,14 @@ COMMAND(config)
 }
 END_COMMAND
 
-COMMAND(quit)
+COMMAND(quit, CommandFlags::None)
 {
 	bot->should_stop = true;
 	bot->conn->quit("Quit issued by " + info->sender->nick + "..");
 }
 END_COMMAND
 
-COMMAND(op)
+COMMAND(op, CommandFlags::None)
 {
 	if(info->in.size() == 0)
 	{
@@ -339,7 +339,7 @@ COMMAND(op)
 }
 END_COMMAND
 
-COMMAND(deop)
+COMMAND(deop, CommandFlags::None)
 {
 	if(info->in.size() == 0)
 	{
@@ -360,7 +360,7 @@ COMMAND(deop)
 }
 END_COMMAND
 
-COMMAND(voice)
+COMMAND(voice, CommandFlags::None)
 {
 	if(info->in.size() == 0)
 	{
@@ -381,7 +381,7 @@ COMMAND(voice)
 }
 END_COMMAND
 
-COMMAND(devoice)
+COMMAND(devoice, CommandFlags::None)
 {
 	if(info->in.size() == 0)
 	{
@@ -403,7 +403,7 @@ COMMAND(devoice)
 }
 END_COMMAND
 
-COMMAND(join)
+COMMAND(join, CommandFlags::None)
 {
 	if(info->in.size() == 0)
 	{
@@ -414,7 +414,7 @@ COMMAND(join)
 }
 END_COMMAND
 
-COMMAND(part)
+COMMAND(part, CommandFlags::None)
 {
 	if(info->in.size() == 0)
 	{

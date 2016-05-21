@@ -165,7 +165,7 @@ void LuaPlugin::deinit(PluginHost *h)
 	}
 }
 
-LuaCommand::LuaCommand(lua_State *s, std::string n, int r)
+LuaCommand::LuaCommand(lua_State *s, std::string n, int r) : CommandBase(CommandFlags::None)
 {
 	_name = n;
 	state = s;

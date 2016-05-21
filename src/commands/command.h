@@ -9,13 +9,12 @@
 
 #define NAME(n) n ## Command 
 
-#define COMMAND(n) class n ## Command : public CommandBase { virtual std::string name() { return #n; }; virtual void run(Bot *bot, CommandInfo *info)
+#define COMMAND(n, f) class n ## Command : public CommandBase { public: n ## Command () : CommandBase(f) {}; virtual std::string name() { return #n; }; virtual void run(Bot *bot, CommandInfo *info)
 
 #define END_COMMAND };
 
 #define REGISTER_COMMAND(b, n) b->register_command(#n, new n ## Command ())
 #define REMOVE_COMMAND(b, n) b->remove_command(#n)
-
 
 class IRCMessageEvent;
 
@@ -46,14 +45,23 @@ public:
 
 class CommandInfo;
 
+enum class CommandFlags
+{
+	None = 0,
+	OneParam = 1
+};
+
 class CommandBase
 {
 public:
+	CommandBase(CommandFlags f) : flags(f) {}
 	virtual void run(Bot *b, CommandInfo *i) = 0;
 	virtual ~CommandBase() {};
 	virtual std::string name() = 0;
+	CommandFlags flags;
 private:
 };
+
 
 class CommandInfo
 {

@@ -75,6 +75,7 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 
 		switch(c)
 		{
+			case '\'':
 			case '\"':
 				if(quote)
 				{
@@ -125,6 +126,8 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 
 	bool cmd = true;
 
+	CommandBase *curr_cmd = nullptr;
+
 	for(auto a: tokens)
 	{
 		if(a.first == type_str)
@@ -146,10 +149,25 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 				}
 
 				v.push_back(b);
+				curr_cmd = b;
 			}
 			else
 			{
-				curr->in.push_back(new StringData(a.second));
+				if((int)curr_cmd->flags & (int)CommandFlags::OneParam)
+				{
+					if(curr->in.size() == 0)
+					{
+						curr->in.push_back(new StringData(a.second));	
+					}
+					else
+					{
+						((StringData*)curr->in.front())->str += " " + a.second;
+					}
+				}
+				else
+				{
+					curr->in.push_back(new StringData(a.second));
+				}
 			}
 		}
 		else if(a.first == type_delim)
