@@ -157,6 +157,11 @@ bool IRCConnection::cb_rewrite_invite(Event *e)
 bool IRCConnection::cb_rewrite_message(Event *e)
 {
 	RawIRCEvent *ev = reinterpret_cast<RawIRCEvent*>(e);
+	if(ev->params[0] == current_nick) // this is a pm!
+	{
+		ev->params[0] = ev->sender->nick;
+	}
+
 	sink->queue_event(new IRCMessageEvent("irc/" + e->type.substr(4), ev->sender, ev->params[0], ev->params[1]));
 	return true;
 }
