@@ -1,3 +1,4 @@
+#include "ircbot.h"
 #include "command.h"
 #include "events.h"
 #include <iostream>
@@ -27,22 +28,22 @@ void Command::run(Bot *bot, IRCMessageEvent *ev)
 			// todo: clean
 			std::string s = curr->pop()->to_string();
 			s = util::replace(s, "\n", " / ");
-			bot->conn->send_privmsg(ev->target, s);
+			bot->send_message(ev->target, s);
 		}
 
 		delete i;
 	}
 	catch(CommandNotFoundException e)
 	{
-		bot->conn->send_privmsg(ev->target, "Command '" + e.command + "' not found!");
+		bot->send_message(ev->target, "Command '" + e.command + "' not found!");
 	}
 	catch(PermissionDeniedException e)
 	{
-		bot->conn->send_privmsg(ev->target, "Permission denied for '" + e.command + "'!");
+		bot->send_message(ev->target, "Permission denied for '" + e.command + "'!");
 	}
 	catch(CommandErrorException e)
 	{
-		bot->conn->send_privmsg(ev->target, "Command '" + e.command + "' threw error '" + e.err + "'!");
+		bot->send_message(ev->target, "Command '" + e.command + "' threw error '" + e.err + "'!");
 	}
 }
 
@@ -197,7 +198,7 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 
 bool check_permissions(Bot *bot, User *u, std::string target, std::string command)
 {
-	if(!u->synced || u->account == "*")
+	if(u->account == "*")
 	{
 		return false;
 	}
@@ -225,25 +226,32 @@ bool check_permissions(Bot *bot, User *u, std::string target, std::string comman
 				{
 					return false;
 				}
-				else if(b == "special/ops")
+				else if(bot->type == "irc")
 				{
-					if(target[0] == '#')
+					if(b == "special/ops")
 					{
-						Channel &c = bot->conn->get_channel(target);
-						if(c.users[u->nick].modes['o'])
+						if(target[0] == '#')
 						{
-							return true;
+							IRCChannel *c = ((IRCBot*)bot)->conn->get_channel(target);
+							IRCChannelUserData *dat = (IRCChannelUserData *)c->users[u->nick]->data;
+
+							if(dat->modes['o'])
+							{
+								return true;
+							}
 						}
 					}
-				}
-				else if(b == "special/voice")
-				{
-					if(target[0] == '#')
+					else if(b == "special/voice")
 					{
-						Channel &c = bot->conn->get_channel(target);
-						if(c.users[u->nick].modes['v'])
+						if(target[0] == '#')
 						{
-							return true;
+							IRCChannel *c = ((IRCBot*)bot)->conn->get_channel(target);
+							IRCChannelUserData *dat = (IRCChannelUserData *)c->users[u->nick]->data;
+
+							if(dat->modes['v'])
+							{
+								return true;
+							}
 						}
 					}
 				}

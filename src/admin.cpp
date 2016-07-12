@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "bot.h"
+#include "ircbot.h"
 #include "events.h"
 #include "commands/command.h"
 #include <algorithm>
@@ -12,7 +12,7 @@ std::string AdminPlugin::name()
 	return "admin";
 }
 
-COMMAND(load, CommandFlags::OneParam)
+COMMAND(load, CommandFlags::OneParam, any)
 {
 	Plugin *p = NULL;
 
@@ -31,7 +31,7 @@ COMMAND(load, CommandFlags::OneParam)
 }
 END_COMMAND
 
-COMMAND(unload, CommandFlags::OneParam)
+COMMAND(unload, CommandFlags::OneParam, any)
 {
 	if (info->in.size() == 0)
 	{
@@ -47,14 +47,14 @@ COMMAND(unload, CommandFlags::OneParam)
 }
 END_COMMAND
 
-COMMAND(save, CommandFlags::None)
+COMMAND(save, CommandFlags::None, any)
 {
 	bot->config->save();
 	info->next->in.push_back(new StringData("Saved config!"));
 }
 END_COMMAND
 
-COMMAND(permissions, CommandFlags::None)
+COMMAND(permissions, CommandFlags::None, any)
 {
 	std::string usage = "Usage: perms [add|del|list] [command] [user]";
 
@@ -133,7 +133,7 @@ COMMAND(permissions, CommandFlags::None)
 }
 END_COMMAND
 
-COMMAND(group, CommandFlags::None)
+COMMAND(group, CommandFlags::None, any)
 {
 	std::string usage = "Usage: group [add|del|list] [group] [user]";
 
@@ -208,12 +208,12 @@ COMMAND(group, CommandFlags::None)
 }
 END_COMMAND
 
-COMMAND(config, CommandFlags::None)
+COMMAND(config, CommandFlags::None, any)
 {
 	std::string usage = "Usage: config [get/set/add/del] [name] [value]";
 	if(info->in.size() < 2)
 	{
-		bot->conn->send_privmsg(info->target, usage);
+		info->error(usage);
 		return;
 	}
 
@@ -230,6 +230,12 @@ COMMAND(config, CommandFlags::None)
 		else
 		{
 			info->next->in.push_back(v->v);
+		}
+
+		size_t ct = v->children.size();
+		if(ct != 0)
+		{
+			info->next->in.push_back(new StringData("with " + std::to_string(ct) + (ct == 1 ? " child" : " children")));
 		}
 	}
 	else if(mode == "set")
@@ -311,15 +317,16 @@ COMMAND(config, CommandFlags::None)
 }
 END_COMMAND
 
-COMMAND(quit, CommandFlags::None)
+COMMAND(quit, CommandFlags::None, any)
 {
 	bot->should_stop = true;
-	bot->conn->quit("Quit issued by " + info->sender->nick + "..");
+	bot->quit("Quit issued by " + info->sender->nick + "..");
 }
 END_COMMAND
 
-COMMAND(op, CommandFlags::None)
+COMMAND(op, CommandFlags::None, irc)
 {
+	IRCBot *ibot = (IRCBot*)bot;
 	if(info->in.size() == 0)
 	{
 		info->error("Usage: op [names]");
@@ -329,7 +336,7 @@ COMMAND(op, CommandFlags::None)
 	{
 		while(info->in.size() != 0)
 		{
-			bot->conn->mode(info->target, "+o", info->pop()->to_string());
+			ibot->conn->mode(info->target, "+o", info->pop()->to_string());
 		}
 	}
 	else
@@ -339,8 +346,10 @@ COMMAND(op, CommandFlags::None)
 }
 END_COMMAND
 
-COMMAND(deop, CommandFlags::None)
+COMMAND(deop, CommandFlags::None, irc)
 {
+	IRCBot *ibot = (IRCBot*)bot;
+
 	if(info->in.size() == 0)
 	{
 		info->error("Usage: deop [names]");
@@ -350,7 +359,7 @@ COMMAND(deop, CommandFlags::None)
 	{
 		while(info->in.size() != 0)
 		{
-			bot->conn->mode(info->target, "-o", info->pop()->to_string());
+			ibot->conn->mode(info->target, "-o", info->pop()->to_string());
 		}
 	}
 	else
@@ -360,8 +369,9 @@ COMMAND(deop, CommandFlags::None)
 }
 END_COMMAND
 
-COMMAND(voice, CommandFlags::None)
+COMMAND(voice, CommandFlags::None, irc)
 {
+	IRCBot *ibot = (IRCBot*)bot;
 	if(info->in.size() == 0)
 	{
 		info->error("Usage: voice [names]");
@@ -371,7 +381,7 @@ COMMAND(voice, CommandFlags::None)
 	{
 		while(info->in.size() != 0)
 		{
-			bot->conn->mode(info->target, "+v", info->pop()->to_string());
+			ibot->conn->mode(info->target, "+v", info->pop()->to_string());
 		}
 	}
 	else
@@ -381,19 +391,19 @@ COMMAND(voice, CommandFlags::None)
 }
 END_COMMAND
 
-COMMAND(devoice, CommandFlags::None)
+COMMAND(devoice, CommandFlags::None, irc)
 {
+	IRCBot *ibot = (IRCBot*)bot;
 	if(info->in.size() == 0)
 	{
 		info->error("Usage: devoice [names]");
 	}
 
-
 	if(info->target[0] == '#')
 	{
 		while(info->in.size() != 0)
 		{
-			bot->conn->mode(info->target, "-v", info->pop()->to_string());
+			ibot->conn->mode(info->target, "-v", info->pop()->to_string());
 		}
 	}
 	else
@@ -403,24 +413,24 @@ COMMAND(devoice, CommandFlags::None)
 }
 END_COMMAND
 
-COMMAND(join, CommandFlags::None)
+COMMAND(join, CommandFlags::None, any)
 {
 	if(info->in.size() == 0)
 	{
 		info->error("Usage: join [channel]");
 	}
 
-	bot->conn->join(info->pop()->to_string());
+	bot->join(info->pop()->to_string());
 }
 END_COMMAND
 
-COMMAND(part, CommandFlags::None)
+COMMAND(part, CommandFlags::None, any)
 {
 	if(info->in.size() == 0)
 	{
 		info->error("Usage: part [channel]");
 	}
-	bot->conn->part(info->pop()->to_string());
+	bot->leave(info->pop()->to_string());
 }
 END_COMMAND
 

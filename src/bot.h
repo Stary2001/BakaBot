@@ -20,32 +20,27 @@ public:
 
 	bool should_stop;
 
-	IRCConnection *conn;
 	Config *config;
     Config *locale;
-private:
-	//BotConfig config;
-	IRCState state;
 
+    virtual void __connect(ConnectionDispatcher *d, std::string server, short port, bool use_ssl) = 0;
+    virtual void join(std::string channel) = 0;
+    virtual void leave(std::string channel) = 0;
+    virtual void quit(std::string message) = 0;
+    virtual void send_message(std::string target, std::string message) = 0;
+
+	std::string type;
+
+	bool cb_command(Event *e);
+protected:
 	void init_plugins();
 	void destroy_plugins();
-
-	bool print(Event *e);
-	bool end_of_motd(Event *e);
-	bool cb_cap_done(Event *e);
-	bool cb_sasl(Event *e);
-	bool cb_invite(Event *e);
-	bool cb_command(Event *e);
 
 	void end_sasl();
 	bool cb_sasl_done(Event *e);
 
 	void event_thread_func();
 	std::thread event_thread;
-
-	bool nickserv_done;
-
 	std::map<std::string, CommandBase*> commands;
-
 	Plugin *open_lua(std::string filename);
 };

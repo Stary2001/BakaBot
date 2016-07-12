@@ -86,23 +86,23 @@ void EventSink::handle_event()
 Event::Event(std::string t) : type(t)
 {}
 
-IRCEvent::IRCEvent(std::string t, User *u) : Event(t), sender(u)
+IRCEvent::IRCEvent(std::string t, IRCUser *u) : Event(t), sender(u)
 {}
 
-RawIRCEvent::RawIRCEvent(std::string n, User *u, std::vector<std::string> p): IRCEvent(n, u), params(p)
+RawIRCEvent::RawIRCEvent(std::string n, IRCUser *u, std::vector<std::string> p): IRCEvent(n, u), params(p)
 {}
 
-IRCConnectedEvent::IRCConnectedEvent(User *s) : IRCEvent("irc/connected", s)
+IRCConnectedEvent::IRCConnectedEvent(IRCUser *s) : IRCEvent("irc/connected", s)
 {}
 
 IRCRegisteredEvent::IRCRegisteredEvent() : Event("irc/registered")
 {}
 
-IRCInviteEvent::IRCInviteEvent(User *s, std::string t, std::string c) : IRCEvent("irc/invite", s), target(t), channel(c)
+IRCInviteEvent::IRCInviteEvent(IRCUser *s, std::string t, std::string c) : IRCEvent("irc/invite", s), target(t), channel(c)
 {}
 
-IRCMessageEvent::IRCMessageEvent(User *s, std::string t, std::string msg) : IRCEvent("irc/message", s), target(t), message(msg)
+IRCMessageEvent::IRCMessageEvent(IRCUser *s, std::string t, std::string msg) : IRCEvent("irc/message", s), target(t), message(msg)
 {}
 
-IRCMessageEvent::IRCMessageEvent(std::string type, User *s, std::string t, std::string msg) : IRCEvent(type, s), target(t), message(msg)
+IRCMessageEvent::IRCMessageEvent(std::string type, IRCUser *s, std::string t, std::string msg) : IRCEvent(type, s), target(t), message(msg)
 {}

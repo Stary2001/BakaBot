@@ -1,11 +1,10 @@
 #pragma once
 #include "connection.h"
 #include "lineconnection.h"
-#include "user.h"
 #include "export.h"
+#include "data/ircchannel.h"
 #include <vector>
 #include <set>
-
 #include <map>
 #include <functional>
 
@@ -59,53 +58,6 @@ struct IRCServerState
 	bool supports_ns_status;
 };
 
-enum ModeType
-{
-	FLAG,
-	LIST,
-	VALUE
-};
-
-class Mode
-{
-public:
-	Mode();
-	Mode(char c);
-	Mode(char c, bool flag);
-	Mode(char c, std::string v);
-
-	ModeType type;
-	char mode;
-	bool active;
-	std::string value;
-	std::vector<std::string> list;
-};
-
-class ChannelUser
-{
-public:
-	ChannelUser();
-	ChannelUser(User *u);
-	User *user;
-	std::map<char, bool> modes;
-};
-
-PLUGINCLASS Channel
-{
-public:
-	Channel();
-	Channel(std::string n);
-	std::string name;
-	std::map<std::string, ChannelUser> users;
-	std::string topic;
-	std::string topic_changed_by;
-	unsigned int topic_time;
-	std::map<char, Mode> modes;
-	Mode& get_mode(char c, ModeType m);
-
-	bool syncing;
-};
-
 PLUGINCLASS IRCConnection : public LineConnection
 {
 public:
@@ -123,12 +75,11 @@ public:
 
 	void quit(std::string msg);
 
-	
 	std::string antiping(std::string c, std::string msg);
 
 	std::string current_nick;
 
-	Channel &get_channel(std::string n);
+	IRCChannel *get_channel(std::string n);
 	void do_cap(std::vector<std::string> &caps);
 	bool has_cap(std::string name);
 
@@ -140,13 +91,13 @@ private:
 
 	EventSink *sink;
 
-	std::map<std::string, Channel> channels;
+	std::map<std::string, IRCChannel*> channels;
 	std::vector<std::string> joined_channels;
 
-	std::map<std::string, User*> global_users;
+	std::map<std::string, IRCUser*> global_users;
 
 	void parse_line(std::string line, std::string& sender, std::string& command, std::vector<std::string>& params);
-	User parse_hostmask(std::string hostmask);
+	IRCUser parse_hostmask(std::string hostmask);
 
 	bool cb_myinfo(Event *e);
 	bool cb_isupport(Event *e);
@@ -178,5 +129,5 @@ private:
 	void end_cap();
 	void sync_nickserv(User *u);
 
-	User* get_user(std::string name);
+	IRCUser* get_user(std::string name);
 };

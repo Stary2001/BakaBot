@@ -37,28 +37,28 @@ private:
 class IRCEvent : public Event
 {
 public:
-	IRCEvent(std::string type, User *u);
+	IRCEvent(std::string type, IRCUser *u);
 	std::string type;
-    User *sender;
+    IRCUser *sender;
 };
 
 class RawIRCEvent : public IRCEvent
 {
 public:
-	RawIRCEvent(std::string type, User *u, std::vector<std::string> p);
+	RawIRCEvent(std::string type, IRCUser *u, std::vector<std::string> p);
 	std::vector<std::string> params;
 };
 
 class IRCConnectedEvent : public IRCEvent
 {
 public:
-	IRCConnectedEvent(User *s);
+	IRCConnectedEvent(IRCUser *s);
 };
 
 class IRCInviteEvent : public IRCEvent
 {
 public:
-	IRCInviteEvent(User *s, std::string target, std::string channel);
+	IRCInviteEvent(IRCUser *s, std::string target, std::string channel);
 	std::string target;
 	std::string channel;
 };
@@ -66,8 +66,8 @@ public:
 class IRCMessageEvent : public IRCEvent
 {
 public:
-	IRCMessageEvent(std::string type, User *s, std::string t, std::string msg);
-	IRCMessageEvent(User *s, std::string target, std::string message);
+	IRCMessageEvent(std::string type, IRCUser *s, std::string t, std::string msg);
+	IRCMessageEvent(IRCUser *s, std::string target, std::string message);
     std::string target;
     std::string message;
 };

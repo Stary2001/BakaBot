@@ -1,5 +1,5 @@
 #include <curl/curl.h>
-#include "bot.h"
+#include "ircbot.h"
 #include "logger.h"
 #include "config.h"
 #include "util.h"
@@ -39,7 +39,7 @@ int main(int argc, char** argv)
 	{
 		c = Config::load("./networks/" + name);
 		Config *l = Config::load("./lang/" + c->get("locale.language")->as_string() + ".conf");
-		Bot *b = new Bot(c, l);
+		Bot *b = new IRCBot(c, l);
 		bots.push_back(b);
 		b->connect(&d);
 	}

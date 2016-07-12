@@ -9,7 +9,7 @@
 
 #define NAME(n) n ## Command 
 
-#define COMMAND(n, f) class n ## Command : public CommandBase { public: n ## Command () : CommandBase(f) {}; virtual std::string name() { return #n; }; virtual void run(Bot *bot, CommandInfo *info)
+#define COMMAND(n, f, net) class n ## Command : public CommandBase { public: n ## Command () : CommandBase(f) {}; virtual std::string name() { return #n; }; virtual void run(Bot *bot, CommandInfo *info)
 
 #define END_COMMAND };
 

@@ -198,6 +198,7 @@ std::shared_ptr<ConfigNode> Config::get(std::string path)
         }
         v = v->children[entry];
     }
+
     return v;
 }
 

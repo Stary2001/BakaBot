@@ -1,5 +1,6 @@
 #include "ircconnection.h"
-#include "bot.h"
+#include "ircbot.h"
+#include "data/ircchannel.h"
 #include <cstring>
 #include <iostream>
 #include "util.h"
@@ -185,7 +186,7 @@ bool IRCConnection::cb_mode(Event *e)
 
 	if(channels.find(chan) == channels.end())
 	{
-		channels[chan] = Channel(chan);
+		channels[chan] = new IRCChannel(chan);
 	}
 
 	auto it = ev->params.begin() + 1; // [2]
@@ -218,7 +219,8 @@ bool IRCConnection::cb_mode(Event *e)
 				else if(list.find(c) != list.end())
 				{
 					auto param = *(++it);
-					Mode& m = channels[chan].get_mode(c, LIST);
+					IRCChannel *irc_chan = (IRCChannel*)channels[chan];
+					Mode& m = irc_chan->get_mode(c, LIST);
 					if(add)
 					{
 						if(std::find(m.list.begin(), m.list.end(), param) == m.list.end())
@@ -241,21 +243,24 @@ bool IRCConnection::cb_mode(Event *e)
 					auto param = *(++it);
 					if(irc_server.prefix_modes.find(c) != irc_server.prefix_modes.end())
 					{
-						if(channels[chan].users.find(param) != channels[chan].users.end())
+						if(channels[chan]->users.find(param) != channels[chan]->users.end())
 						{
 							if(add)
 							{
-								channels[chan].users[param].modes[c] = true;
+								IRCChannelUserData *dat = (IRCChannelUserData *)channels[chan]->users[param]->data;
+								dat->modes[c] = true;
 							}
 							else
 							{
-								channels[chan].users[param].modes[c] = false;
+								IRCChannelUserData *dat = (IRCChannelUserData *)channels[chan]->users[param]->data;
+								dat->modes[c] = false;
 							}
 						}
 					}
 					else
 					{
-						Mode& m = channels[chan].get_mode(c, VALUE);
+						IRCChannel *irc_chan = (IRCChannel*)channels[chan];
+						Mode& m = irc_chan->get_mode(c, VALUE);
 
 						if(add)
 						{
@@ -263,10 +268,12 @@ bool IRCConnection::cb_mode(Event *e)
 						}
 						else
 						{
+							IRCChannel *irc_chan = (IRCChannel*)channels[chan];
+
 							// remove setting
-							if(channels[chan].modes.find(c) != channels[chan].modes.end())
+							if(irc_chan->modes.find(c) != irc_chan->modes.end())
 							{
-								channels[chan].modes.erase(c);
+								irc_chan->modes.erase(c);
 							}
 						}
 					}
@@ -274,7 +281,8 @@ bool IRCConnection::cb_mode(Event *e)
 				else if(flag.find(c) != flag.end())
 				{
 					//auto param = *(++it);
-					Mode& m = channels[chan].get_mode(c, FLAG);
+					IRCChannel *irc_chan = (IRCChannel*)channels[chan];
+					Mode& m = irc_chan->get_mode(c, FLAG);
 					m.active = add;
 				}
 			}
@@ -292,9 +300,10 @@ bool IRCConnection::cb_join(Event *e)
 
 	if(channels.find(c) == channels.end())
 	{
-		channels[c] = Channel(c);
+		channels[c] = new IRCChannel(c);
 	}
 
+	// We joined a channel!
 	if(ev->sender->nick == current_nick)
 	{
 		if (irc_server.supports_whox)
@@ -305,11 +314,20 @@ bool IRCConnection::cb_join(Event *e)
 		{
 			send_line("WHO " + c);
 		}
-		channels[c].syncing	= true;
+
+		IRCChannel *irc_chan = (IRCChannel*)channels[c];
+		irc_chan->syncing = true;
 		joined_channels.push_back(c);
 	}
 
-	channels[c].users[ev->sender->nick] = ChannelUser(ev->sender);
+	// starts user sync
+
+	ChannelUser *u = new ChannelUser();
+	u->user = ev->sender;
+	u->data = new IRCChannelUserData();
+
+	channels[c]->users[ev->sender->nick] = u;
+
 	if (irc_server.supports_whox)
 	{
 		send_line("WHO " + ev->sender->nick + " %cuhnarsf");
@@ -330,7 +348,7 @@ bool IRCConnection::cb_part(Event *e)
 
 	if(channels.find(c) == channels.end())
 	{
-		channels[c] = Channel(c);
+		channels[c] = new IRCChannel(c);
 	}
 
 	if(ev->sender->nick == current_nick)
@@ -344,7 +362,7 @@ bool IRCConnection::cb_part(Event *e)
 	}
 	else
 	{
-		channels[c].users.erase(ev->sender->nick);
+		channels[c]->users.erase(ev->sender->nick);
 	}
 
 	return false;
@@ -358,9 +376,11 @@ bool IRCConnection::cb_topic(Event *e)
 
 	if(channels.find(c) == channels.end())
 	{
-		channels[c] = Channel(c);
+		channels[c] = new IRCChannel(c);
 	}
-	channels[c].topic = ev->params[2];
+
+	IRCChannel* irc_chan = (IRCChannel*) channels[c];
+	irc_chan->topic = ev->params[2];
 
 	return false;
 }
@@ -373,9 +393,11 @@ bool IRCConnection::cb_topic_change(Event *e)
 
 	if(channels.find(c) == channels.end())
 	{
-		channels[c] = Channel(c);
+		channels[c] = new IRCChannel(c);
 	}
-	channels[c].topic = ev->params[1];
+
+	IRCChannel* irc_chan = (IRCChannel*) channels[c];
+	irc_chan->topic = ev->params[1];
 	// TODO: topic_change_time = now
 
 	return false;
@@ -389,9 +411,11 @@ bool IRCConnection::cb_no_topic(Event *e)
 
 	if(channels.find(c) == channels.end())
 	{
-		channels[c] = Channel(c);
+		channels[c] = new IRCChannel(c);
 	}
-	channels[c].topic = "";
+
+	IRCChannel* irc_chan = (IRCChannel*) channels[c];
+	irc_chan->topic = "";
 
 	return false;
 }
@@ -403,11 +427,13 @@ bool IRCConnection::cb_topic_change_time(Event *e)
 	std::string c = ev->params[1];
 	if(channels.find(c) == channels.end())
 	{
-		channels[c] = Channel(c);
+		channels[c] = new IRCChannel(c);
 	}
 
-	channels[c].topic_changed_by = ev->params[2];
-	channels[c].topic_time = stoi(ev->params[3]);
+	IRCChannel* irc_chan = (IRCChannel*) channels[c];
+
+	irc_chan->topic_changed_by = ev->params[2];
+	irc_chan->topic_time = stoi(ev->params[3]);
 
 	return false;
 }
@@ -431,7 +457,7 @@ bool IRCConnection::cb_who(Event *e)
 
 	std::string n = ev->params[5];
 
-	User *u = get_user(n);
+	IRCUser *u = get_user(n);
 	if(!u->synced)
 	{
 		u->ident = ev->params[2];
@@ -465,14 +491,18 @@ bool IRCConnection::cb_who(Event *e)
 	{
 		if(channels.find(c) == channels.end())
 		{
-			channels[c] = Channel(c);
+			channels[c] = new IRCChannel(c);
 		}
-		if(channels[c].users.find(n) == channels[c].users.end())
+		if(channels[c]->users.find(n) == channels[c]->users.end())
 		{
-			channels[c].users[n] = ChannelUser(u);
+			ChannelUser *u_ = new ChannelUser();
+			u_->user = u;
+			u_->data = new IRCChannelUserData();
+			IRCChannel *irc_chan = (IRCChannel*) channels[c];
+			irc_chan->users[n] = u_;
 		}
 		
-		ChannelUser &cu = channels[c].users[n];
+		IRCChannelUserData *dat = (IRCChannelUserData*)channels[c]->users[n]->data;
 
 		for(char c : ev->params[6])
 		{
@@ -480,7 +510,7 @@ bool IRCConnection::cb_who(Event *e)
 			{
 				if(irc_server.prefixes.find(c) != irc_server.prefixes.end())
 				{
-					cu.modes[irc_server.prefixes[c]] = true;
+					dat->modes[irc_server.prefixes[c]] = true;
 				}
 			}
 		}
@@ -502,7 +532,7 @@ bool IRCConnection::cb_ns_notice(Event *e)
 		else if (irc_server.supports_ns_status && ev->message.substr(0, 6) == "STATUS")
 		{
 			auto v = util::split(ev->message, " ");
-			User *u = get_user(v[1]);
+			IRCUser *u = get_user(v[1]);
 			if (v[2] == "3")
 			{
 				u->account_synced = true;
@@ -529,10 +559,11 @@ bool IRCConnection::cb_end_who(Event *e)
 	{
 		if(channels.find(c) == channels.end())
 		{
-			channels[c] = Channel(c);
+			channels[c] = new IRCChannel(c);
 		}
 
-		channels[c].syncing = false;
+		IRCChannel *irc_chan = (IRCChannel*)channels[c];
+		irc_chan->syncing = false;
 	}
 
 	return false;
@@ -814,9 +845,9 @@ void IRCConnection::parse_line(std::string line_s, std::string& sender, std::str
     }
 }
 
-User IRCConnection::parse_hostmask(std::string hostmask)
+IRCUser IRCConnection::parse_hostmask(std::string hostmask)
 {
-	User u;
+	IRCUser u;
 	size_t bang = hostmask.find('!');
 	size_t at = hostmask.find('@');
 	if(bang == std::string::npos || at == std::string::npos)
@@ -840,7 +871,7 @@ void IRCConnection::handle_line(std::string line)
 
 	parse_line(line, sender, command, params);
 
-	User sender_u = parse_hostmask(sender);
+	IRCUser sender_u = parse_hostmask(sender);
 
 	std::transform(command.begin(), command.end(), command.begin(), tolower);
 
@@ -860,7 +891,7 @@ void IRCConnection::handle_line(std::string line)
 		}
 	}*/
 
-	User *u = get_user(sender_u.nick);
+	IRCUser *u = get_user(sender_u.nick);
 	if(!u->synced)
 	{
 		u->ident = sender_u.ident;
@@ -871,11 +902,11 @@ void IRCConnection::handle_line(std::string line)
 	sink->queue_event(ev);
 }
 
-User* IRCConnection::get_user(std::string name)
+IRCUser* IRCConnection::get_user(std::string name)
 {
 	if(global_users.find(name) == global_users.end())
 	{
-		User *u = new User();
+		IRCUser *u = new IRCUser();
 		u->synced = false;
 		u->nick = name;
 		global_users[name] = u;
@@ -888,8 +919,8 @@ std::string IRCConnection::antiping(std::string c, std::string msg)
 {
 	if(channels.find(c) == channels.end()) return msg;
 
-	Channel &ch = channels[c];
-	for(auto u : ch.users)
+	IRCChannel *ch = channels[c];
+	for(auto u : ch->users)
 	{
 		size_t a = msg.find(u.first);
 		if(a != std::string::npos)
@@ -904,18 +935,18 @@ std::string IRCConnection::antiping(std::string c, std::string msg)
 	return msg;
 }
 
-Channel& IRCConnection::get_channel(std::string c)
+IRCChannel *IRCConnection::get_channel(std::string c)
 {
 	return channels[c];
 }
 
-Channel::Channel()
+IRCChannel::IRCChannel()
 {}
 
-Channel::Channel(std::string n) : name(n)
+IRCChannel::IRCChannel(std::string n) : Channel(n)
 {}
 
-Mode& Channel::get_mode(char c, ModeType t)
+Mode& IRCChannel::get_mode(char c, ModeType t)
 {
 	if(modes.find(c) == modes.end())
 	{
@@ -930,6 +961,3 @@ Mode::Mode() {}
 Mode::Mode(char c) : mode(c) {}
 Mode::Mode(char c, bool flag): type(FLAG), mode(c)  {}
 Mode::Mode(char c, std::string v): type(VALUE), mode(c), value(v) {}
-
-ChannelUser::ChannelUser() : user(NULL) {}
-ChannelUser::ChannelUser(User *u) : user(u) {}
