@@ -1,4 +1,4 @@
-#include "ircbot.h"
+#include "bot.h"
 #include "util.h"
 #include "admin.h"
 #include "logger.h"

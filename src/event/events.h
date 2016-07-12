@@ -1,5 +1,5 @@
 #pragma once
-#include "ircconnection.h"
+#include "irc/ircconnection.h"
 #include "export.h"
 #include <vector>
 #include <map>

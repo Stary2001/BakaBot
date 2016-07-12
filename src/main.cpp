@@ -1,5 +1,5 @@
 #include <curl/curl.h>
-#include "ircbot.h"
+#include "irc/ircbot.h"
 #include "logger.h"
 #include "config.h"
 #include "util.h"

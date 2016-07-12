@@ -1,4 +1,4 @@
-#include "ircbot.h"
+#include "irc/ircbot.h"
 #include "command.h"
 #include "events.h"
 #include <iostream>

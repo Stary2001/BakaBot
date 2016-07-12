@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "ircbot.h"
+#include "irc/ircbot.h"
 #include "events.h"
 #include "commands/command.h"
 #include <algorithm>
