@@ -1,6 +1,7 @@
 #include "irc/ircbot.h"
 #include "command.h"
 #include "events.h"
+#include "permissions.h"
 #include <iostream>
 
 void Command::run(Bot *bot, IRCMessageEvent *ev)
@@ -46,8 +47,6 @@ void Command::run(Bot *bot, IRCMessageEvent *ev)
 		bot->send_message(ev->target, "Command '" + e.command + "' threw error '" + e.err + "'!");
 	}
 }
-
-bool check_permissions(Bot *bot, User *u, std::string target, std::string command);
 
 std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRCMessageEvent *ev)
 {
@@ -193,85 +192,6 @@ std::tuple<CommandInfo*, std::vector<CommandBase*>> Command::parse(Bot *bot, IRC
 	curr->next->target = ev->target;
 
 	return std::make_tuple(info, v);
-}
-
-
-bool check_permissions(Bot *bot, User *u, std::string target, std::string command)
-{
-	if(u->account == "*")
-	{
-		return false;
-	}
-
-	std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + command);
-
-	if (v->is("list"))
-	{
-		for(auto a : v->as_list())
-		{
-			std::string b = a->to_string();
-			if(b == u->account)
-			{
-				return true;
-			}
-			else if(b.substr(0, 6) == "group/")
-			{
-				b = b.substr(6);
-
-				if(b == "special/all")
-				{
-					return true;
-				}
-				else if(b == "special/none")
-				{
-					return false;
-				}
-				else if(bot->type == "irc")
-				{
-					if(b == "special/ops")
-					{
-						if(target[0] == '#')
-						{
-							IRCChannel *c = ((IRCBot*)bot)->conn->get_channel(target);
-							IRCChannelUserData *dat = (IRCChannelUserData *)c->users[u->nick]->data;
-
-							if(dat->modes['o'])
-							{
-								return true;
-							}
-						}
-					}
-					else if(b == "special/voice")
-					{
-						if(target[0] == '#')
-						{
-							IRCChannel *c = ((IRCBot*)bot)->conn->get_channel(target);
-							IRCChannelUserData *dat = (IRCChannelUserData *)c->users[u->nick]->data;
-
-							if(dat->modes['v'])
-							{
-								return true;
-							}
-						}
-					}
-				}
-
-				std::shared_ptr<ConfigNode> v2 = bot->config->get("groups." + b);
-				if (v2->is("list"))
-				{
-					for(auto c : v2->as_list())
-					{
-						if(c->to_string() == u->account)
-						{
-							return true;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false;
 }
 
 CommandBase *Command::get_ptr(std::string n)

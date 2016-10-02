@@ -56,14 +56,15 @@ END_COMMAND
 
 COMMAND(permissions, CommandFlags::None, any)
 {
-	std::string usage = "Usage: perms [add|del|list] [command] [user]";
+	std::string usage = "Usage: perms [add|del|list] [allow|deny] [command] [user]";
 
-	if(info->in.size() == 0)
+	if(info->in.size() < 2)
 	{
 		info->error(usage);
 	}
 
 	std::string mode = info->pop()->to_string();
+	std::string realm = info->pop()->to_string();
 
 	if(info->in.size() < (mode != "list" ? 2 : 1))
 	{
@@ -72,16 +73,18 @@ COMMAND(permissions, CommandFlags::None, any)
 
 	std::string k = info->pop()->to_string();
 
+	std::string path = "permissions." + realm + "." + k;
+
 	if(mode == "add")
 	{
 		Data *vstr = info->pop();
 
-		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
+		std::shared_ptr<ConfigNode> v = bot->config->get(path);
 		if (v->is("null"))
 		{
 			std::vector<Data*> v = {vstr};
 			ListData *d = new ListData(v);
-			bot->config->set("permissions." + k, d);
+			bot->config->set(path, d);
 		}
 		else if(v->is("list"))
 		{
@@ -91,14 +94,13 @@ COMMAND(permissions, CommandFlags::None, any)
 	}
 	else if(mode == "del")
 	{
-		std::string k = info->pop()->to_string();
 		std::string vstr = info->pop()->to_string();
 
-		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
+		std::shared_ptr<ConfigNode> v = bot->config->get(path);
 
 		if (v->is("null"))
 		{
-			info->error("'" + k + "' not found!");
+			info->error(k + "/" + realm + " not found!");
 			return;
 		}
 
@@ -112,10 +114,10 @@ COMMAND(permissions, CommandFlags::None, any)
 	}
 	else if(mode == "list")
 	{
-		std::shared_ptr<ConfigNode> v = bot->config->get("permissions." + k);
+		std::shared_ptr<ConfigNode> v = bot->config->get(path);
 		if (v->is("null"))
 		{
-			info->error("'" + k + "' not found!");
+			info->error(k + "/" + realm + " not found!");
 			return;
 		}
 

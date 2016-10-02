@@ -131,8 +131,12 @@ Data* ListType::from_string(std::string val)
 {
 	std::vector<std::string> v_s = util::split(val, "|");
 	std::vector<Data*> v;
-	v.resize(v_s.size());
-	std::transform(v_s.begin(), v_s.end(), v.begin(), [](std::string s) -> Data* { return Data::deserialize(s); } );
+
+	if(v_s.size() > 1 || v_s[0] != "") // if we don't get an empty string, fill the list
+	{
+		v.resize(v_s.size());
+		std::transform(v_s.begin(), v_s.end(), v.begin(), [](std::string s) -> Data* { return Data::deserialize(s); } );
+	}
 
 	ListData *d = new ListData(v);
 	return d;
