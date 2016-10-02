@@ -62,7 +62,6 @@ public:
 private:
 };
 
-
 class CommandInfo
 {
 public:

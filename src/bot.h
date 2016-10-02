@@ -13,7 +13,7 @@ public:
 	Bot(Config *c, Config *l);
 	~Bot();
 
-	void connect(ConnectionDispatcher *d);
+	virtual void connect(ConnectionDispatcher *d);
 	CommandBase *get_command(std::string n);
 	void register_command(std::string n, CommandBase *b);
 	void remove_command(std::string n);
